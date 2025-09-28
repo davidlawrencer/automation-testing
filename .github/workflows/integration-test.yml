@@ -184,7 +184,8 @@ jobs:
             -scheme "Embrace Ecommerce" \
             -destination "$destination" \
             -only-testing:"Embrace EcommerceUITests" \
-            -allowProvisioningUpdates; then
+            -allowProvisioningUpdates \
+            -skipMacroValidation; then
             echo "✅ PASSED: Tests completed successfully on $device"
             passed_count=$((passed_count + 1))
           else
