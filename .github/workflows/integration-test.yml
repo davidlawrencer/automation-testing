@@ -139,13 +139,18 @@ jobs:
         echo "✅ Selected build destination: $build_destination"
         echo ""
         echo "🔨 Starting build-for-testing..."
+
+        # Ensure DerivedData directory exists
+        mkdir -p ~/Library/Developer/Xcode/DerivedData
+
         echo "Command: xcodebuild build-for-testing -scheme 'Embrace Ecommerce' -destination '$build_destination'"
         echo ""
 
         xcodebuild build-for-testing \
           -scheme "Embrace Ecommerce" \
           -destination "$build_destination" \
-          -derivedDataPath ~/Library/Developer/Xcode/DerivedData || {
+          -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
+          -allowProvisioningUpdates || {
           echo "❌ ERROR: Build failed!"
           exit 1
         }
