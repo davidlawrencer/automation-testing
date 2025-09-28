@@ -85,72 +85,6 @@ jobs:
         echo "✅ Swift Package dependencies resolved"
         echo ""
 
-    - name: Build for testing (once for all devices)
-      run: |
-        echo "🔍 Discovering available destinations for building..."
-
-        # Show all available destinations first
-        echo "📱 All available destinations:"
-        xcodebuild -showdestinations -scheme "Embrace Ecommerce" || {
-          echo "❌ ERROR: Failed to get destinations for scheme 'Embrace Ecommerce'"
-          echo "Available schemes:"
-          xcodebuild -list
-          exit 1
-        }
-
-        echo ""
-        echo "🎯 Filtering for iOS Simulator destinations..."
-
-        # Get any available iOS simulator for building
-        echo "🔍 Searching for available simulators..."
-        available_destinations=$(xcodebuild -showdestinations -scheme "Embrace Ecommerce" | grep "platform:iOS Simulator")
-        echo "Raw destinations found:"
-        echo "$available_destinations"
-        echo ""
-
-        # Extract a simple iPhone simulator destination
-        selected_line=$(echo "$available_destinations" | \
-          grep -E "platform:iOS Simulator.*name:iPhone" | \
-          head -1)
-
-        if [[ -n "$selected_line" ]]; then
-          # Extract each field independently regardless of order
-          device_name=$(echo "$selected_line" | sed -n 's/.*name:\([^,}]*\).*/\1/p' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-          os_version=$(echo "$selected_line" | sed -n 's/.*OS:\([^,}]*\).*/\1/p' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-          platform=$(echo "$selected_line" | sed -n 's/.*platform:\([^,}]*\).*/\1/p' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-
-          # Construct the destination string
-          build_destination="platform=${platform},name=${device_name},OS=${os_version}"
-
-          echo "🔍 Parsed fields:"
-          echo "  Platform: '$platform'"
-          echo "  Device: '$device_name'"
-          echo "  OS: '$os_version'"
-        else
-          build_destination=""
-        fi
-
-        if [[ -z "$build_destination" ]] || [[ "$build_destination" == *"platform="* && "$build_destination" != *"name="* ]]; then
-          echo "❌ ERROR: Failed to parse simulator destination"
-          echo "No suitable iOS simulator destination found for building"
-          exit 1
-        fi
-
-        echo "✅ Selected build destination: $build_destination"
-        echo ""
-        echo "🔨 Starting build-for-testing..."
-        echo "Command: xcodebuild build-for-testing -scheme 'Embrace Ecommerce' -destination '$build_destination'"
-        echo ""
-
-        xcodebuild build-for-testing \
-          -scheme "Embrace Ecommerce" \
-          -destination "$build_destination" \
-          -allowProvisioningUpdates || {
-          echo "❌ ERROR: Build failed!"
-          exit 1
-        }
-
-        echo "✅ Build completed successfully"
 
     - name: Run UI Tests on multiple devices
       run: |
@@ -244,12 +178,13 @@ jobs:
           echo ""
 
           destination="platform=iOS Simulator,name=$device,OS=$os_version"
-          echo "🚀 Executing: xcodebuild test-without-building with destination: $destination"
+          echo "🚀 Executing: xcodebuild test with destination: $destination"
 
-          if xcodebuild test-without-building \
+          if xcodebuild test \
             -scheme "Embrace Ecommerce" \
             -destination "$destination" \
-            -only-testing:"Embrace EcommerceUITests"; then
+            -only-testing:"Embrace EcommerceUITests" \
+            -allowProvisioningUpdates; then
             echo "✅ PASSED: Tests completed successfully on $device"
             passed_count=$((passed_count + 1))
           else
