@@ -139,19 +139,12 @@ jobs:
         echo "✅ Selected build destination: $build_destination"
         echo ""
         echo "🔨 Starting build-for-testing..."
-
-        # Create a clean build directory
-        BUILD_DIR="/tmp/embrace-build"
-        rm -rf "$BUILD_DIR"
-        mkdir -p "$BUILD_DIR"
-
-        echo "Command: xcodebuild build-for-testing -scheme 'Embrace Ecommerce' -destination '$build_destination' -derivedDataPath '$BUILD_DIR'"
+        echo "Command: xcodebuild build-for-testing -scheme 'Embrace Ecommerce' -destination '$build_destination'"
         echo ""
 
         xcodebuild build-for-testing \
           -scheme "Embrace Ecommerce" \
           -destination "$build_destination" \
-          -derivedDataPath "$BUILD_DIR" \
           -allowProvisioningUpdates || {
           echo "❌ ERROR: Build failed!"
           exit 1
@@ -256,7 +249,6 @@ jobs:
           if xcodebuild test-without-building \
             -scheme "Embrace Ecommerce" \
             -destination "$destination" \
-            -derivedDataPath "/tmp/embrace-build" \
             -only-testing:"Embrace EcommerceUITests"; then
             echo "✅ PASSED: Tests completed successfully on $device"
             passed_count=$((passed_count + 1))
