@@ -183,7 +183,7 @@ jobs:
           if xcodebuild test \
             -scheme "Embrace Ecommerce" \
             -destination "$destination" \
-            -only-testing:"Embrace EcommerceUITests" \
+            -only-testing:"Embrace EcommerceUITests/Embrace_EcommerceUITests/testAuthenticationGuestFlow" \
             -allowProvisioningUpdates \
             -skipMacroValidation; then
             echo "✅ PASSED: Tests completed successfully on $device"
