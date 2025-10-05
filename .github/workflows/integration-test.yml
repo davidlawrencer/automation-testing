@@ -86,6 +86,8 @@ jobs:
         echo ""
 
 
+    # TODO: Disable LLDB debugger and launcher in the scheme for CI runs to avoid potential issues
+    # The scheme currently has LLDB enabled for local development, but CI may need PosixSpawn
     - name: Run UI Tests on multiple devices
       run: |
         echo "🧪 Starting UI Test execution on multiple devices..."
