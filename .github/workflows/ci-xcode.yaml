@@ -1,5 +1,7 @@
 name: Xcode - CI
 
+# Note: This CI/CD function is optimized to pull as much activity as possible out of a single action. It might not be optimized for your use case.
+
 on:
   workflow_dispatch:
 
