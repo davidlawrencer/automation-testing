@@ -87,9 +87,22 @@ final class Embrace_EcommerceUITests: XCTestCase {
 
     /// Sends the app to background to trigger Embrace session uploads
     private func sendAppToBackground() {
-        // Send app to background by opening Settings app
         let settingsApp = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        let ecommerceApp = XCUIApplication()  // The app being tested
+
+        // Send app to background by opening Settings app
         settingsApp.activate()
+
+        // Wait for the app state to transition
+        Thread.sleep(forTimeInterval: 1.0)
+
+        // Verify that Settings is in the foreground and Ecommerce is in background
+        XCTAssertEqual(settingsApp.state, .runningForeground,
+                       "Settings app should be in foreground")
+        XCTAssertEqual(ecommerceApp.state, .runningBackground,
+                       "Embrace Ecommerce app should be in background")
+
+        print("✅ Verified: Settings app in foreground, Embrace Ecommerce in background")
 
         // Wait to allow Embrace SDK time to upload sessions
         Thread.sleep(forTimeInterval: 5.0)
