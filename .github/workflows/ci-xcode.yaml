@@ -142,126 +142,174 @@ jobs:
 
         echo "✅ Build completed successfully"
 
-    - name: Run UI Tests on multiple devices
+    - name: Clone simulators for parallel testing
       run: |
-        echo "🧪 Starting UI Test execution on multiple devices..."
+        echo "📱 Cloning simulators for parallel testing..."
         echo ""
 
-        # Get device info with OS versions
-        echo "🔍 Discovering iOS simulator devices with OS versions..."
+        # Get base devices to clone (filter for iOS 26.0 to match deployment target)
+        echo "🔍 Finding base devices with iOS 26.0..."
+        base_devices=$(xcodebuild -showdestinations -scheme "Embrace Ecommerce" | \
+          grep "platform:iOS Simulator" | \
+          grep "OS:26.0" | \
+          grep -E "(iPhone 17|iPad Pro|iPad Air)" | \
+          head -5)
 
-        # Create temp file with device info
-        echo "📱 Getting destination list from xcodebuild..."
+        if [[ -z "$base_devices" ]]; then
+          echo "❌ ERROR: No iOS 26.0 simulators found for cloning"
+          exit 1
+        fi
+
+        echo "📋 Base devices found:"
+        echo "$base_devices"
+        echo ""
+
+        # Create clones (5 per device)
+        clones_per_device=5
+        clone_count=0
+
+        echo "$base_devices" | while IFS= read -r line; do
+          # Extract device name and UDID
+          device_name=$(echo "$line" | sed -n 's/.*name:\([^,}]*\).*/\1/p' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          device_udid=$(echo "$line" | sed -n 's/.*id:\([^,}]*\).*/\1/p' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+          if [[ -n "$device_name" ]] && [[ -n "$device_udid" ]]; then
+            echo "🔄 Cloning $device_name ($device_udid)..."
+
+            for i in $(seq 1 $clones_per_device); do
+              clone_name="Clone $i of $device_name"
+              echo "  Creating: $clone_name"
+              xcrun simctl clone "$device_udid" "$clone_name" || {
+                echo "  ⚠️ Warning: Failed to create clone $i"
+              }
+              clone_count=$((clone_count + 1))
+            done
+            echo ""
+          fi
+        done
+
+        echo "✅ Created $clone_count simulator clones"
+        echo ""
+
+    - name: Run UI Tests in parallel on multiple devices
+      run: |
+        echo "🧪 Starting parallel UI Test execution..."
+        echo ""
+
+        # Get all available iOS 26.0 devices (including clones)
+        echo "🔍 Discovering all iOS 26.0 simulator devices..."
         xcodebuild -showdestinations -scheme "Embrace Ecommerce" | \
           grep "platform:iOS Simulator" | \
+          grep "OS:26.0" | \
           grep -E "(iPhone|iPad)" | \
           grep -v "Any iOS Simulator Device" > /tmp/device_destinations.txt || {
           echo "❌ ERROR: Failed to get device destinations"
           exit 1
         }
 
-        echo "📝 Raw device destinations found:"
-        cat /tmp/device_destinations.txt | head -5
-        echo "... (showing first 5 entries)"
-        echo ""
-
-        # Extract device info and create a simple list
+        # Extract device info
         echo "🔄 Processing device information..."
-        processed_count=0
+        > /tmp/device_list.txt
         while IFS= read -r line; do
-          # Extract device name and OS version more carefully
           device_name=$(echo "$line" | sed -n 's/.*name:\([^,}]*\).*/\1/p' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
           os_version=$(echo "$line" | sed -n 's/.*OS:\([^,}]*\).*/\1/p' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+          device_udid=$(echo "$line" | sed -n 's/.*id:\([^,}]*\).*/\1/p' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
 
-          # Validate we have both values and device name is iPhone/iPad
-          if [[ -n "$device_name" ]] && [[ -n "$os_version" ]] && [[ "$device_name" =~ ^(iPhone|iPad) ]]; then
-            # Clean up any quotes or extra spaces
-            device_name=$(echo "$device_name" | sed 's/["'"'"']//g')
-            os_version=$(echo "$os_version" | sed 's/["'"'"']//g')
-
-            echo "$device_name|$os_version"
-            processed_count=$((processed_count + 1))
+          if [[ -n "$device_name" ]] && [[ -n "$os_version" ]] && [[ "$device_name" =~ ^(iPhone|iPad|Clone) ]]; then
+            echo "$device_name|$os_version|$device_udid" >> /tmp/device_list.txt
           fi
-        done < /tmp/device_destinations.txt | sort -u -t'|' -k1,1 > /tmp/device_os_list.txt
+        done < /tmp/device_destinations.txt
 
-        echo "✅ Processed $processed_count device entries"
+        device_count=$(wc -l < /tmp/device_list.txt | tr -d ' ')
+        echo "✅ Found $device_count devices (including clones)"
         echo ""
 
-        # Check if we found any devices
-        device_count=$(wc -l < /tmp/device_os_list.txt)
         if [[ $device_count -eq 0 ]]; then
-          echo "❌ ERROR: No valid iOS simulator devices found!"
-          echo "Debug info:"
-          echo "- Raw destinations file size: $(wc -l < /tmp/device_destinations.txt) lines"
-          echo "- Processed devices file size: $(wc -l < /tmp/device_os_list.txt) lines"
+          echo "❌ ERROR: No valid iOS 26.0 simulator devices found!"
           exit 1
         fi
 
-        echo "📱 Available devices with OS versions (found $device_count total):"
-        cat /tmp/device_os_list.txt | while IFS='|' read -r device os; do
+        # Show devices
+        echo "📱 Devices to test:"
+        cat /tmp/device_list.txt | while IFS='|' read -r device os udid; do
           echo "  ✓ $device (OS: $os)"
         done
         echo ""
 
-        # Test on up to 5 devices
-        max_devices=5
-        actual_test_count=$(( device_count < max_devices ? device_count : max_devices ))
-        echo "🎯 Will test on $actual_test_count devices (max: $max_devices)"
+        # Launch tests in parallel (up to 25 devices: 5 base × 5 clones)
+        max_parallel=25
+        actual_test_count=$(( device_count < max_parallel ? device_count : max_parallel ))
+        echo "🚀 Launching $actual_test_count parallel test runs..."
         echo ""
 
-        tested_count=0
-        failed_count=0
-        passed_count=0
+        # Create log directory
+        mkdir -p /tmp/test-logs
 
-        cat /tmp/device_os_list.txt | head -$max_devices | while IFS='|' read -r device os_version; do
-          tested_count=$((tested_count + 1))
+        # Launch all tests in background
+        declare -a pids
+        declare -a device_names
+        test_num=0
 
-          # Validate device and OS are not empty
-          if [[ -z "$device" ]] || [[ -z "$os_version" ]]; then
-            echo "❌ ERROR: Empty device name or OS version - skipping"
-            echo "  Device: '$device'"
-            echo "  OS Version: '$os_version'"
-            failed_count=$((failed_count + 1))
-            continue
-          fi
+        cat /tmp/device_list.txt | head -$max_parallel | while IFS='|' read -r device os_version udid; do
+          test_num=$((test_num + 1))
 
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "🧪 TEST $tested_count/$actual_test_count: $device (OS: $os_version)"
-          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-          echo "📱 Device: $device"
-          echo "📊 OS Version: $os_version"
-          echo "🎯 Target: Embrace EcommerceUITests"
-          echo ""
+          # Sanitize device name for file path
+          safe_device_name=$(echo "$device" | sed 's/ /-/g' | sed 's/[^a-zA-Z0-9-]//g')
+          log_file="/tmp/test-logs/test-${test_num}-${safe_device_name}.log"
 
           destination="platform=iOS Simulator,name=$device,OS=$os_version"
-          echo "🚀 Executing: xcodebuild test-without-building with destination: $destination"
 
-          if xcodebuild test-without-building \
+          echo "[$test_num/$actual_test_count] Starting: $device"
+
+          # Launch test in background
+          xcodebuild test-without-building \
             -scheme "Embrace Ecommerce" \
             -destination "$destination" \
             -derivedDataPath ~/Library/Developer/Xcode/DerivedData \
-            -only-testing:"Embrace EcommerceUITests"; then
-            echo "✅ PASSED: Tests completed successfully on $device"
-            passed_count=$((passed_count + 1))
-          else
-            echo "❌ FAILED: Tests failed on $device (OS: $os_version)"
-            failed_count=$((failed_count + 1))
-            echo "📝 Note: Continuing with remaining devices..."
-          fi
-          echo ""
+            -only-testing:"Embrace EcommerceUITests" \
+            > "$log_file" 2>&1 &
+
+          pids+=($!)
+          device_names+=("$device")
         done
 
+        echo ""
+        echo "⏳ Waiting for all tests to complete..."
+        echo ""
+
+        # Wait for all background processes
+        failed_count=0
+        passed_count=0
+
+        for i in "${!pids[@]}"; do
+          pid=${pids[$i]}
+          device=${device_names[$i]}
+
+          if wait $pid; then
+            echo "✅ PASSED: $device"
+            passed_count=$((passed_count + 1))
+          else
+            echo "❌ FAILED: $device"
+            failed_count=$((failed_count + 1))
+          fi
+        done
+
+        echo ""
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "📊 FINAL RESULTS"
         echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
         echo "🔢 Total devices found: $device_count"
-        echo "🧪 Devices tested: $actual_test_count"
+        echo "🧪 Tests launched in parallel: $actual_test_count"
         echo "✅ Passed: $passed_count"
         echo "❌ Failed: $failed_count"
         echo ""
 
+        # Show logs location
+        echo "📋 Test logs available in: /tmp/test-logs/"
+        echo ""
+
         if [[ $passed_count -gt 0 ]]; then
-          echo "🎉 SUCCESS: At least one device passed tests"
+          echo "🎉 SUCCESS: $passed_count device(s) passed tests"
         else
           echo "💥 FAILURE: No devices passed tests"
           exit 1
