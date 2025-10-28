@@ -5,7 +5,8 @@ name: Xcode - Integration Testing
 on:
   workflow_dispatch:
   schedule:
-    - cron: '*/40 * * * *'
+    - cron: '0 */2 * * *'      # Every 2 hours at minute 0 (00:00, 02:00, 04:00, etc.)
+    - cron: '30 1-23/2 * * *'  # Every 2 hours starting from hour 1, at minute 30 (01:30, 03:30, 05:30, etc.)
 
 # concurrency:
 #   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.release.id || github.ref }}
@@ -13,7 +14,7 @@ on:
 
 jobs:
   ui-tests:
-    timeout-minutes: 39
+    timeout-minutes: 89
     runs-on: macos-latest
 
     env:
