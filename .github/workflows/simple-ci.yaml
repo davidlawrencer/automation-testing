@@ -88,6 +88,7 @@ jobs:
           -scheme "${{ env.PROJECT_NAME }}" \
           -destination "platform=iOS Simulator,name=iPhone 16 Pro" \
           -only-testing:"${{ env.PROJECT_NAME }}UITests/Embrace_EcommerceUITests/testAuthenticationGuestFlow" \
+          -parallel-testing-enabled NO \
           -allowProvisioningUpdates \
           -skipMacroValidation
         echo "✅ UI tests completed successfully"
