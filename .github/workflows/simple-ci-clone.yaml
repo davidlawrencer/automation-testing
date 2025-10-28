@@ -47,18 +47,6 @@ jobs:
         echo "✅ Using Xcode at: $(xcode-select --print-path)"
         sudo xcodebuild -license accept 2>/dev/null || echo "License already accepted"
 
-    - name: Inject APP_ID
-      run: |
-        echo "🔧 Injecting APP_ID into code..."
-        if [[ -n "${{ vars.APP_ID }}" ]]; then
-          echo "✅ APP_ID found: ${{ vars.APP_ID }}"
-          sed -i.bak "s/static let appId = \".*\"/static let appId = \"${{ vars.APP_ID }}\"/g" "${{ env.PROJECT_NAME }}/Services/SDKConfiguration.swift"
-          echo "✅ APP_ID injected successfully"
-        else
-          echo "❌ ERROR: APP_ID not found in repository variables"
-          exit 1
-        fi
-
     - name: Build for Testing
       run: |
         echo "🔨 Building for testing..."
