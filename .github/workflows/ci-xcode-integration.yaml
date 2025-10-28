@@ -7,13 +7,13 @@ on:
   schedule:
     - cron: '*/40 * * * *'
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.release.id || github.ref }}
-  cancel-in-progress: true
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.event.release.id || github.ref }}
+#   cancel-in-progress: true
 
 jobs:
   ui-tests:
-    timeout-minutes: 24
+    timeout-minutes: 39
     runs-on: macos-latest
 
     env:
@@ -25,6 +25,14 @@ jobs:
     - name: Set up Xcode
       run: |
         sudo xcode-select --print-path
+
+    - name: Cache DerivedData
+      uses: actions/cache@v3
+      with:
+        path: ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-deriveddata-${{ hashFiles('**/Podfile.lock', '**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-deriveddata-
 
     - name: Set Embrace appId
       run: |
