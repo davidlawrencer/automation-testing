@@ -1,0 +1,83 @@
+name: Simple CI Clone (Optimized)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ui-tests:
+    timeout-minutes: 89
+    runs-on: macos-latest
+
+    env:
+      PROJECT_NAME: "Embrace Ecommerce"
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v5
+
+    - name: Cache DerivedData
+      uses: actions/cache@v4
+      with:
+        path: ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-deriveddata-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-${{ hashFiles('**/Package.resolved', '**/Podfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-deriveddata-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-
+          ${{ runner.os }}-deriveddata-
+
+    - name: Cache SPM dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
+
+    - name: Cache Swift PM
+      uses: actions/cache@v4
+      with:
+        path: ~/Library/Caches/org.swift.swiftpm
+        key: ${{ runner.os }}-swiftpm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-swiftpm-
+
+    - name: Set up Xcode
+      run: |
+        echo "🔧 Setting up Xcode..."
+        sudo xcode-select --print-path
+        echo "✅ Using Xcode at: $(xcode-select --print-path)"
+        sudo xcodebuild -license accept 2>/dev/null || echo "License already accepted"
+
+    - name: Inject APP_ID
+      run: |
+        echo "🔧 Injecting APP_ID into code..."
+        if [[ -n "${{ vars.APP_ID }}" ]]; then
+          echo "✅ APP_ID found: ${{ vars.APP_ID }}"
+          sed -i.bak "s/static let appId = \".*\"/static let appId = \"${{ vars.APP_ID }}\"/g" "${{ env.PROJECT_NAME }}/Services/SDKConfiguration.swift"
+          echo "✅ APP_ID injected successfully"
+        else
+          echo "❌ ERROR: APP_ID not found in repository variables"
+          exit 1
+        fi
+
+    - name: Build for Testing
+      run: |
+        echo "🔨 Building for testing..."
+        xcodebuild build-for-testing \
+          -scheme "${{ env.PROJECT_NAME }}" \
+          -destination "platform=iOS Simulator,name=iPhone 16 Pro" \
+          -configuration Debug \
+          -enableCodeCoverage NO \
+          -allowProvisioningUpdates \
+          -skipMacroValidation \
+          CODE_SIGNING_ALLOWED=NO
+        echo "✅ Build completed successfully"
+
+    - name: Run UI Tests
+      run: |
+        echo "🧪 Running UI tests..."
+        xcodebuild test-without-building \
+          -scheme "${{ env.PROJECT_NAME }}" \
+          -destination "platform=iOS Simulator,name=iPhone 16 Pro" \
+          -only-testing:"${{ env.PROJECT_NAME }}UITests/Embrace_EcommerceUITests/testAuthenticationGuestFlow" \
+          -parallel-testing-enabled NO
+        echo "✅ UI tests completed successfully"
