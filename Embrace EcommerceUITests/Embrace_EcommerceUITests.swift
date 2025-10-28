@@ -14,6 +14,14 @@ final class Embrace_EcommerceUITests: XCTestCase {
         // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
 
+        // Preload Settings app so it's in memory and ready to activate quickly later
+        // This avoids timeout issues when backgrounding the test app
+        let settingsApp = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        settingsApp.launch()
+
+        // Wait for Settings app to be running before continuing
+        _ = settingsApp.wait(for: .runningForeground, timeout: 5.0)
+
         // Configure the app with launch environment variables
         let app = XCUIApplication()
         app.launchEnvironment = [
