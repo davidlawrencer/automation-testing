@@ -99,8 +99,12 @@ final class Embrace_EcommerceUITests: XCTestCase {
         // Verify that Settings is in the foreground and Ecommerce is in background
         XCTAssertEqual(settingsApp.state, .runningForeground,
                        "Settings app should be in foreground")
-        XCTAssertEqual(ecommerceApp.state, .runningBackground,
-                       "Embrace Ecommerce app should be in background")
+
+        // Accept either runningBackground or runningBackgroundSuspended as valid states
+        let isInBackground = ecommerceApp.state == .runningBackground ||
+                            ecommerceApp.state == .runningBackgroundSuspended
+        XCTAssertTrue(isInBackground,
+                     "Embrace Ecommerce app should be in background (state: \(ecommerceApp.state.rawValue))")
 
         print("✅ Verified: Settings app in foreground, Embrace Ecommerce in background")
 
