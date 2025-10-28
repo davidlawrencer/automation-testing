@@ -5,6 +5,7 @@ on:
 
 jobs:
   ui-tests:
+    timeout-minutes: 89
     runs-on: macos-latest
 
     env:
@@ -12,7 +13,24 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+    - uses: actions/checkout@v5
+
+    - name: Cache DerivedData
+      uses: actions/cache@v4
+      with:
+        path: ~/Library/Developer/Xcode/DerivedData
+        key: ${{ runner.os }}-deriveddata-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-${{ hashFiles('**/Package.resolved', '**/Podfile.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-deriveddata-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-
+          ${{ runner.os }}-deriveddata-
+
+    - name: Cache SPM dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
 
     - name: Set up Xcode
       run: |
