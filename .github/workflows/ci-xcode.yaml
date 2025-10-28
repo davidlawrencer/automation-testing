@@ -66,11 +66,8 @@ jobs:
     - name: Resolve Swift Package dependencies
       run: |
         echo "📦 Resolving Swift Package dependencies..."
-        DERIVED_DATA_PATH="$HOME/Library/Developer/Xcode/DerivedData"
-        mkdir -p "$DERIVED_DATA_PATH"
         xcodebuild -resolvePackageDependencies \
-          -scheme "Embrace Ecommerce" \
-          -derivedDataPath "$DERIVED_DATA_PATH" || {
+          -scheme "Embrace Ecommerce" || {
           echo "❌ ERROR: Failed to resolve Swift Package dependencies"
           exit 1
         }
@@ -131,24 +128,13 @@ jobs:
         echo "✅ Selected build destination: $build_destination"
         echo ""
 
-        # Create derived data and result bundle directories
-        echo "📁 Creating build directories..."
-        DERIVED_DATA_PATH="$HOME/Library/Developer/Xcode/DerivedData"
-        RESULT_BUNDLE_PATH="$HOME/Library/Developer/Xcode/ResultBundles"
-        mkdir -p "$DERIVED_DATA_PATH"
-        mkdir -p "$RESULT_BUNDLE_PATH"
-        echo "✅ Directories created"
-        echo ""
-
         echo "🔨 Starting build-for-testing..."
         echo "Command: xcodebuild build-for-testing -scheme 'Embrace Ecommerce' -destination '$build_destination'"
         echo ""
 
         xcodebuild build-for-testing \
           -scheme "Embrace Ecommerce" \
-          -destination "$build_destination" \
-          -derivedDataPath "$DERIVED_DATA_PATH" \
-          -resultBundlePath "$RESULT_BUNDLE_PATH/BuildResults.xcresult" || {
+          -destination "$build_destination" || {
           echo "❌ ERROR: Build failed!"
           exit 1
         }
@@ -249,10 +235,6 @@ jobs:
         done
         echo ""
 
-        # Set up paths
-        DERIVED_DATA_PATH="$HOME/Library/Developer/Xcode/DerivedData"
-        RESULT_BUNDLE_PATH="$HOME/Library/Developer/Xcode/ResultBundles"
-
         # Launch tests in parallel (up to 25 devices: 5 base × 5 clones)
         max_parallel=25
         actual_test_count=$(( device_count < max_parallel ? device_count : max_parallel ))
@@ -282,8 +264,6 @@ jobs:
           xcodebuild test-without-building \
             -scheme "Embrace Ecommerce" \
             -destination "$destination" \
-            -derivedDataPath "$DERIVED_DATA_PATH" \
-            -resultBundlePath "$RESULT_BUNDLE_PATH/Test-${test_num}.xcresult" \
             -only-testing:"Embrace EcommerceUITests" \
             > "$log_file" 2>&1 &
 
