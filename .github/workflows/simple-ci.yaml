@@ -23,6 +23,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-deriveddata-${{ hashFiles('**/*.xcodeproj/project.pbxproj') }}-
           ${{ runner.os }}-deriveddata-
+    - name: Cache SPM dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/Library/Developer/Xcode/DerivedData/**/SourcePackages
+        key: ${{ runner.os }}-spm-${{ hashFiles('**/Package.resolved') }}
+        restore-keys: |
+          ${{ runner.os }}-spm-
 
     - name: Set up Xcode
       run: |
