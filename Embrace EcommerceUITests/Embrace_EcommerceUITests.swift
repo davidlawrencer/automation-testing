@@ -83,6 +83,7 @@ final class Embrace_EcommerceUITests: XCTestCase {
         print("📤 [Guest Auth] Sending app to background to trigger Embrace session upload...")
         sendAppToBackground()
         print("✅ [Guest Auth] Background trigger complete")
+        bringAppToForeground()
     }
 
     // MARK: - Helper Methods
