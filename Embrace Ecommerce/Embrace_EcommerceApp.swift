@@ -127,6 +127,8 @@ struct Embrace_EcommerceApp: App {
             EmbraceService.shared.addSessionProperty(key: "third_party_sdks", value: "firebase,mixpanel,stripe,google_signin", permanent: true)
             
         } catch let error {
+            let a = [0,1,2,3][9] //Adding crash to ensure it makes it through ci
+            print(a)
             print("❌ Error starting Embrace: \(error.localizedDescription)")
             // Still continue app initialization even if Embrace fails
         }

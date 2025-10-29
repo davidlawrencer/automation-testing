@@ -103,6 +103,6 @@ jobs:
           -project "Embrace Ecommerce.xcodeproj" \
           -scheme "${{ env.PROJECT_NAME }}" \
           -destination "platform=iOS Simulator,name=iPhone 16 Pro" \
-          -only-testing:"${{ env.PROJECT_NAME }}UITests/Embrace_EcommerceUITests/testAuthenticationGuestFlow" \
+          -only-testing:"${{ env.PROJECT_NAME }}UITests/Embrace_EcommerceUITests/testFlow" \
           -parallel-testing-enabled NO
         echo "✅ UI tests completed successfully"
