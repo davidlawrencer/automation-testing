@@ -8,14 +8,12 @@
 import XCTest
 
 final class Embrace_EcommerceUITests: XCTestCase {
+    
+    var app: XCUIApplication!
 
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-        // In UI tests it is usually best to stop immediately when a failure occurs.
         continueAfterFailure = false
 
-        // Preload Settings app so it's in memory and ready to activate quickly later
-        // This avoids timeout issues when backgrounding the test app
         let settingsApp = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
         settingsApp.launch()
 
@@ -23,32 +21,26 @@ final class Embrace_EcommerceUITests: XCTestCase {
         _ = settingsApp.wait(for: .runningForeground, timeout: 5.0)
 
         // Configure the app with launch environment variables
-        let app = XCUIApplication()
+        app = XCUIApplication()
         app.launchEnvironment = [
             "UI_TESTING": "1",
             "DISABLE_NETWORK_CALLS": "1", // Disable app network calls but allow Embrace SDK
             "USE_MOCK_DATA": "1",
             "ALLOW_EMBRACE_NETWORK": "1" // Allow Embrace SDK network requests
         ]
+        app.launch()
+
+        // Wait for Embrace SDK to fully initialize
+        Thread.sleep(forTimeInterval: 3.0)
     }
 
     override func tearDownWithError() throws {
-        let app = XCUIApplication()
-
-        // Terminate the app completely
-        if app.state != .notRunning {
-            app.terminate()
-        }
+        app = nil
     }
 
     @MainActor
     func testAuthenticationGuestFlow() throws {
         print("🧪 [Guest Auth] Starting Guest Authentication Flow Test")
-
-        // Launch the application
-        let app = XCUIApplication()
-        app.launch()
-        print("✅ [Guest Auth] Application launched successfully")
 
         // Step 1: Wait for authentication view to load
         let authenticationView = app.descendants(matching: .any)["authenticationView"].firstMatch
@@ -96,7 +88,6 @@ final class Embrace_EcommerceUITests: XCTestCase {
     /// Sends the app to background to trigger Embrace session uploads
     private func sendAppToBackground() {
         let settingsApp = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
-        let ecommerceApp = XCUIApplication()  // The app being tested
 
         // Send app to background by opening Settings app
         settingsApp.activate()
@@ -105,7 +96,6 @@ final class Embrace_EcommerceUITests: XCTestCase {
         Thread.sleep(forTimeInterval: 1.0)
 
         // Verify that Settings is in the foreground and Ecommerce is in background
-        
         _ = settingsApp.wait(for: .runningForeground, timeout: 5.0)
 
         XCTAssertEqual(settingsApp.state, .runningForeground,
@@ -113,7 +103,7 @@ final class Embrace_EcommerceUITests: XCTestCase {
         print("✅ Verified: Settings app in foreground, Embrace Ecommerce in background")
 
         // Wait to allow Embrace SDK time to upload sessions
-        Thread.sleep(forTimeInterval: 2.0)
+        Thread.sleep(forTimeInterval: 3.0)
     }
 
     @MainActor
