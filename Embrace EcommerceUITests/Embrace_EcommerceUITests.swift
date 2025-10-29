@@ -10,11 +10,12 @@ import XCTest
 final class Embrace_EcommerceUITests: XCTestCase {
     
     var app: XCUIApplication!
+    var settingsApp: XCUIApplication!
 
     override func setUpWithError() throws {
         continueAfterFailure = false
 
-        let settingsApp = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        settingsApp = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
         settingsApp.launch()
 
         // Wait for Settings app to be running before continuing
@@ -36,6 +37,7 @@ final class Embrace_EcommerceUITests: XCTestCase {
 
     override func tearDownWithError() throws {
         app = nil
+        settingsApp = nil
     }
 
     @MainActor
@@ -87,8 +89,6 @@ final class Embrace_EcommerceUITests: XCTestCase {
 
     /// Sends the app to background to trigger Embrace session uploads
     private func sendAppToBackground() {
-        let settingsApp = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
-
         // Send app to background by opening Settings app
         settingsApp.activate()
 
@@ -103,6 +103,26 @@ final class Embrace_EcommerceUITests: XCTestCase {
         print("✅ Verified: Settings app in foreground, Embrace Ecommerce in background")
 
         // Wait to allow Embrace SDK time to upload sessions
+        Thread.sleep(forTimeInterval: 3.0)
+    }
+    
+    /// Sends the app to foreground to trigger Embrace session uploads for background session
+    private func bringAppToForeground() {
+        // Send app to foreground by activating
+        // Note: .activate does not terminate existing app instance, which .launch often does
+        app.activate()
+
+        // Wait for the app state to transition
+        Thread.sleep(forTimeInterval: 1.0)
+
+        // Verify that Embrace Ecommerce is in the foreground and Ecommerce is in background
+        _ = app.wait(for: .runningForeground, timeout: 5.0)
+
+        XCTAssertEqual(app.state, .runningForeground,
+                       "Embrace Ecommerce app should be in foreground")
+        print("✅ Verified: Embrace Ecommerce app in foreground, Settings in background")
+
+        // Wait to allow Embrace SDK time to upload background sessions
         Thread.sleep(forTimeInterval: 3.0)
     }
 
