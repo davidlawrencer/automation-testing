@@ -104,7 +104,7 @@ final class Embrace_EcommerceUITests: XCTestCase {
         print("✅ Verified: Settings app in foreground, Embrace Ecommerce in background")
 
         // Wait to allow Embrace SDK time to upload sessions
-        Thread.sleep(forTimeInterval: 3.0)
+        Thread.sleep(forTimeInterval: 15.0)
     }
     
     /// Sends the app to foreground to trigger Embrace session uploads for background session
@@ -124,7 +124,7 @@ final class Embrace_EcommerceUITests: XCTestCase {
         print("✅ Verified: Embrace Ecommerce app in foreground, Settings in background")
 
         // Wait to allow Embrace SDK time to upload background sessions
-        Thread.sleep(forTimeInterval: 3.0)
+        Thread.sleep(forTimeInterval: 15.0)
     }
 
     @MainActor
