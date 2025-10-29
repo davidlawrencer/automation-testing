@@ -10,17 +10,10 @@ import XCTest
 final class Embrace_EcommerceUITests: XCTestCase {
     
     var app: XCUIApplication!
-    var settingsApp: XCUIApplication!
 
     override func setUpWithError() throws {
         continueAfterFailure = false
-
-        settingsApp = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
-        settingsApp.launch()
-
-        // Wait for Settings app to be running before continuing
-        _ = settingsApp.wait(for: .runningForeground, timeout: 5.0)
-
+        
         // Configure the app with launch environment variables
         app = XCUIApplication()
         app.launchEnvironment = [
@@ -37,7 +30,6 @@ final class Embrace_EcommerceUITests: XCTestCase {
 
     override func tearDownWithError() throws {
         app = nil
-        settingsApp = nil
     }
 
     @MainActor
@@ -83,6 +75,11 @@ final class Embrace_EcommerceUITests: XCTestCase {
         print("📤 [Guest Auth] Sending app to background to trigger Embrace session upload...")
         sendAppToBackground()
         print("✅ [Guest Auth] Background trigger complete")
+
+        // Bring app back to foreground to trigger upload of backgrounded session
+        print("📤 [Guest Auth] Bringing app to foreground to trigger session upload...")
+        bringAppToForeground()
+        print("✅ [Guest Auth] Foreground trigger complete")
     }
 
     // MARK: - Helper Methods
@@ -90,15 +87,15 @@ final class Embrace_EcommerceUITests: XCTestCase {
     /// Sends the app to background to trigger Embrace session uploads
     private func sendAppToBackground() {
         // Send app to background by opening Settings app
-        settingsApp.activate()
-
+        let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
+        settings.launch()
         // Wait for the app state to transition
         Thread.sleep(forTimeInterval: 1.0)
 
         // Verify that Settings is in the foreground and Ecommerce is in background
-        _ = settingsApp.wait(for: .runningForeground, timeout: 5.0)
+        _ = settings.wait(for: .runningForeground, timeout: 5.0)
 
-        XCTAssertEqual(settingsApp.state, .runningForeground,
+        XCTAssertEqual(settings.state, .runningForeground,
                        "Settings app should be in foreground")
         print("✅ Verified: Settings app in foreground, Embrace Ecommerce in background")
 
@@ -108,8 +105,7 @@ final class Embrace_EcommerceUITests: XCTestCase {
     
     /// Sends the app to foreground to trigger Embrace session uploads for background session
     private func bringAppToForeground() {
-        // Send app to foreground by activating
-        // Note: .activate does not terminate existing app instance, which .launch often does
+        // Bring app to foreground
         app.activate()
 
         // Wait for the app state to transition
@@ -120,7 +116,7 @@ final class Embrace_EcommerceUITests: XCTestCase {
 
         XCTAssertEqual(app.state, .runningForeground,
                        "Embrace Ecommerce app should be in foreground")
-        print("✅ Verified: Embrace Ecommerce app in foreground, Settings in background")
+        print("✅ Verified: Embrace Ecommerce app in foreground")
 
         // Wait to allow Embrace SDK time to upload background sessions
         Thread.sleep(forTimeInterval: 15.0)
