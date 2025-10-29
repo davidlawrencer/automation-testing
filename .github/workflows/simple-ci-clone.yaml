@@ -47,10 +47,42 @@ jobs:
         echo "✅ Using Xcode at: $(xcode-select --print-path)"
         sudo xcodebuild -license accept 2>/dev/null || echo "License already accepted"
 
+    - name: Prepare Simulator
+      run: |
+        echo "📱 Preparing iOS Simulator..."
+
+        # Kill any existing simulators
+        killall Simulator 2>/dev/null || true
+        xcrun simctl shutdown all 2>/dev/null || true
+
+        # List available devices
+        xcrun simctl list devices available
+
+        # Get the simulator UDID for iPhone 16 Pro
+        SIMULATOR_UDID=$(xcrun simctl list devices available | grep "iPhone 16 Pro (" | grep -v "Clone" | head -1 | grep -o -E "\(([0-9A-F-]+)\)" | tr -d '()')
+
+        if [[ -z "$SIMULATOR_UDID" ]]; then
+          echo "❌ iPhone 16 Pro simulator not found"
+          exit 1
+        fi
+
+        echo "✅ Found simulator: $SIMULATOR_UDID"
+
+        # Boot the simulator
+        echo "🚀 Booting simulator..."
+        xcrun simctl boot "$SIMULATOR_UDID" || true
+
+        # Wait for simulator to boot
+        echo "⏳ Waiting for simulator to be ready..."
+        xcrun simctl bootstatus "$SIMULATOR_UDID" -b
+
+        echo "✅ Simulator is ready"
+
     - name: Build for Testing
       run: |
         echo "🔨 Building for testing..."
         xcodebuild build-for-testing \
+          -project "Embrace Ecommerce.xcodeproj" \
           -scheme "${{ env.PROJECT_NAME }}" \
           -destination "platform=iOS Simulator,name=iPhone 16 Pro" \
           -configuration Debug \
@@ -66,6 +98,7 @@ jobs:
       run: |
         echo "🧪 Running UI tests..."
         xcodebuild test-without-building \
+          -project "Embrace Ecommerce.xcodeproj" \
           -scheme "${{ env.PROJECT_NAME }}" \
           -destination "platform=iOS Simulator,name=iPhone 16 Pro" \
           -only-testing:"${{ env.PROJECT_NAME }}UITests/Embrace_EcommerceUITests/testAuthenticationGuestFlow" \
