@@ -237,6 +237,19 @@ jobs:
         echo "================================================"
         echo ""
 
+        # Start capturing Embrace SDK logs in background
+        echo "📋 Starting Embrace SDK log capture..."
+        log stream \
+          --predicate 'subsystem == "com.embrace.logger"' \
+          --level debug \
+          --style compact > embrace_sdk.log 2>&1 &
+
+        LOG_PID=$!
+        echo "Log capture PID: $LOG_PID"
+
+        # Wait for log stream to initialize
+        sleep 2
+
         CLONE_UDIDS="${{ steps.create_clones.outputs.clone_udids }}"
         NUM_CLONES="${{ steps.create_clones.outputs.num_clones }}"
         PROJECT_NAME="${{ env.PROJECT_NAME }}"
@@ -299,6 +312,100 @@ jobs:
           echo "⚠️  $FAILED_COUNT out of $NUM_CLONES tests failed"
         fi
         echo "================================================"
+
+        # Wait for any remaining uploads
+        echo "⏳ Waiting 10 seconds for SDK uploads to complete..."
+        sleep 10
+
+        # Stop log capture
+        echo "🛑 Stopping log capture..."
+        kill $LOG_PID 2>/dev/null || true
+        sleep 1
+
+    - name: Analyze Embrace SDK Logs
+      if: always()
+      run: |
+        echo "═══════════════════════════════════════════════════════"
+        echo "📊 EMBRACE SDK LOG ANALYSIS"
+        echo "═══════════════════════════════════════════════════════"
+        echo ""
+
+        if [[ ! -f embrace_sdk.log ]]; then
+          echo "❌ SDK log file not found!"
+          exit 1
+        fi
+
+        echo "📋 Total log lines captured: $(wc -l < embrace_sdk.log)"
+        echo ""
+
+        # Check for SDK initialization
+        echo "🔍 Checking SDK initialization..."
+        if grep -q "Embrace.*start" embrace_sdk.log; then
+          echo "✅ SDK initialized"
+        else
+          echo "⚠️  SDK initialization not detected"
+        fi
+        echo ""
+
+        # Check for session lifecycle
+        echo "🔍 Checking session lifecycle..."
+        echo "Session events:"
+        grep -i "session" embrace_sdk.log | head -10 || echo "  No session events found"
+        echo ""
+
+        # Check for upload attempts
+        echo "🔍 Checking upload operations..."
+        if grep -q "Upload operation" embrace_sdk.log; then
+          echo "✅ Upload operations detected:"
+          grep "Upload operation" embrace_sdk.log
+        else
+          echo "❌ No upload operations found in logs"
+        fi
+        echo ""
+
+        # Check for successful uploads (HTTP 2xx status codes)
+        echo "🔍 Checking for successful uploads..."
+        if grep -E "Upload operation complete.*Status: 2[0-9]{2}" embrace_sdk.log; then
+          echo "✅✅✅ SUCCESSFUL UPLOADS DETECTED! ✅✅✅"
+          UPLOAD_COUNT=$(grep -cE "Upload operation complete.*Status: 2[0-9]{2}" embrace_sdk.log)
+          echo "📈 Number of successful uploads: $UPLOAD_COUNT"
+        else
+          echo "❌ No successful uploads (Status 2xx) found"
+        fi
+        echo ""
+
+        # Check for upload failures
+        echo "🔍 Checking for upload failures..."
+        if grep -E "Upload operation complete.*Status: [45][0-9]{2}" embrace_sdk.log; then
+          echo "⚠️  Failed uploads detected:"
+          grep -E "Upload operation complete.*Status: [45][0-9]{2}" embrace_sdk.log
+        else
+          echo "✅ No failed uploads"
+        fi
+        echo ""
+
+        # Check for network errors
+        echo "🔍 Checking for network errors..."
+        if grep -i "error.*network\|network.*error\|connection.*failed" embrace_sdk.log; then
+          echo "⚠️  Network errors detected:"
+          grep -i "error.*network\|network.*error\|connection.*failed" embrace_sdk.log | head -5
+        else
+          echo "✅ No network errors detected"
+        fi
+        echo ""
+
+        # Show upload URLs
+        echo "🔍 Upload endpoints used:"
+        grep -o "https://[^ ]*data.emb-api.com[^ ]*" embrace_sdk.log | sort -u || echo "  No URLs found"
+        echo ""
+
+        # Show full log for debugging (last 50 lines)
+        echo "═══════════════════════════════════════════════════════"
+        echo "📜 FULL SDK LOG (last 50 lines):"
+        echo "═══════════════════════════════════════════════════════"
+        tail -50 embrace_sdk.log
+        echo ""
+        echo "═══════════════════════════════════════════════════════"
 
     - name: Test Results Summary
       if: always()
