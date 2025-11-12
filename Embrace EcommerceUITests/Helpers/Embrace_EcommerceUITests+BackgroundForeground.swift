@@ -12,29 +12,37 @@ import XCTest
 extension Embrace_EcommerceUITests {
 
     /// Sends the app to background to trigger Embrace session uploads
+    /// Uses XCUIDevice.shared.press(.home) which is Embrace's proven test method
     func sendAppToBackground() {
-        // Send app to background by opening Settings app
-        let settings = XCUIApplication(bundleIdentifier: "com.apple.Preferences")
-        settings.launch()
+        print("📱 Pressing home button to background app...")
 
-        // Verify that Settings is in the foreground and Ecommerce is in background
-        _ = settings.wait(for: .runningForeground, timeout: 5.0)
+        // Press home button - This is the method Embrace SDK uses in their own tests
+        // See: EmbraceIOTestSessionSpanUITests.swift and EmbraceIOTestPostedPayloads.swift
+        XCUIDevice.shared.press(XCUIDevice.Button.home)
 
-        XCTAssertEqual(settings.state, .runningForeground,
-                       "Settings app should be in foreground")
-        print("✅ Verified: Settings app in foreground, Embrace Ecommerce in background")
+        // Wait for state transition and upload queue processing
+        // Embrace's tests use 1-2 seconds, using 3 for CI reliability
+        sleep(3)
+
+        print("✅ App backgrounded, session upload triggered")
     }
 
-    /// Sends the app to foreground to trigger Embrace session uploads for background session
+    /// Brings the app to foreground to trigger Embrace session uploads for background session
     func bringAppToForeground() {
+        print("📱 Activating app to foreground...")
+
         // Bring app to foreground
         app.activate()
 
-        // Verify that Embrace Ecommerce is in the foreground and Ecommerce is in background
+        // Verify app is running in foreground
         _ = app.wait(for: .runningForeground, timeout: 5.0)
 
         XCTAssertEqual(app.state, .runningForeground,
                        "Embrace Ecommerce app should be in foreground")
-        print("✅ Verified: Embrace Ecommerce app in foreground")
+
+        // Wait for state transition and upload queue processing
+        sleep(3)
+
+        print("✅ App foregrounded, background session upload triggered")
     }
 }
