@@ -98,15 +98,30 @@ jobs:
 
         echo "✅ Build completed successfully"
 
-    - name: Run UI Test
+    - name: Run UI Test with SDK Logging
       run: |
-        echo "🧪 Running demo test..."
+        echo "🧪 Running demo test with Embrace SDK logging..."
         SIMULATOR_UDID="${{ steps.setup_simulator.outputs.simulator_udid }}"
         PROJECT_NAME="${{ env.PROJECT_NAME }}"
         SCHEME="${{ env.PROJECT_NAME }}"
         TEST_CLASS="Embrace_EcommerceUITests"
         TEST_METHOD="testFlow"
 
+        # Start capturing Embrace SDK logs in background
+        echo "📋 Starting Embrace SDK log capture..."
+        log stream \
+          --predicate 'subsystem == "com.embrace.logger"' \
+          --level debug \
+          --style compact > embrace_sdk.log 2>&1 &
+
+        LOG_PID=$!
+        echo "Log capture PID: $LOG_PID"
+
+        # Wait for log stream to initialize
+        sleep 2
+
+        # Run the test
+        echo "▶️  Executing UI test..."
         xcodebuild test-without-building \
           -project "$PROJECT_NAME.xcodeproj" \
           -scheme "$SCHEME" \
@@ -115,25 +130,99 @@ jobs:
 
         echo "✅ Test completed successfully"
 
-    - name: Wait for SDK Upload and Verify
-      if: always()
-      run: |
-        echo "⏳ Waiting for Embrace SDK to complete uploads..."
-
-        # Wait 10 seconds for background uploads to complete
+        # Wait for any remaining uploads
+        echo "⏳ Waiting 10 seconds for SDK uploads to complete..."
         sleep 10
 
-        echo "📊 Checking for network activity..."
+        # Stop log capture
+        echo "🛑 Stopping log capture..."
+        kill $LOG_PID 2>/dev/null || true
+        sleep 1
 
-        # Check if there were any network errors in system logs
-        echo "🔍 Checking system logs for network issues..."
-        log show --predicate 'process == "Embrace Ecommerce"' --last 5m --info 2>/dev/null | grep -i "network\|upload\|embrace" | tail -20 || echo "No relevant logs found"
+    - name: Analyze Embrace SDK Logs
+      if: always()
+      run: |
+        echo "═══════════════════════════════════════════════════════"
+        echo "📊 EMBRACE SDK LOG ANALYSIS"
+        echo "═══════════════════════════════════════════════════════"
+        echo ""
 
-        # Test if Embrace endpoints are still reachable
-        echo "📡 Final connectivity check to Embrace API..."
-        curl -s --max-time 5 -I https://api.embrace.io | head -1 || echo "⚠️  Could not reach Embrace API"
+        if [[ ! -f embrace_sdk.log ]]; then
+          echo "❌ SDK log file not found!"
+          exit 1
+        fi
 
-        echo "✅ Upload verification complete"
+        echo "📋 Total log lines captured: $(wc -l < embrace_sdk.log)"
+        echo ""
+
+        # Check for SDK initialization
+        echo "🔍 Checking SDK initialization..."
+        if grep -q "Embrace.*start" embrace_sdk.log; then
+          echo "✅ SDK initialized"
+        else
+          echo "⚠️  SDK initialization not detected"
+        fi
+        echo ""
+
+        # Check for session lifecycle
+        echo "🔍 Checking session lifecycle..."
+        echo "Session events:"
+        grep -i "session" embrace_sdk.log | head -10 || echo "  No session events found"
+        echo ""
+
+        # Check for upload attempts
+        echo "🔍 Checking upload operations..."
+        if grep -q "Upload operation" embrace_sdk.log; then
+          echo "✅ Upload operations detected:"
+          grep "Upload operation" embrace_sdk.log
+        else
+          echo "❌ No upload operations found in logs"
+        fi
+        echo ""
+
+        # Check for successful uploads (HTTP 2xx status codes)
+        echo "🔍 Checking for successful uploads..."
+        if grep -E "Upload operation complete.*Status: 2[0-9]{2}" embrace_sdk.log; then
+          echo "✅✅✅ SUCCESSFUL UPLOADS DETECTED! ✅✅✅"
+          UPLOAD_COUNT=$(grep -cE "Upload operation complete.*Status: 2[0-9]{2}" embrace_sdk.log)
+          echo "📈 Number of successful uploads: $UPLOAD_COUNT"
+        else
+          echo "❌ No successful uploads (Status 2xx) found"
+        fi
+        echo ""
+
+        # Check for upload failures
+        echo "🔍 Checking for upload failures..."
+        if grep -E "Upload operation complete.*Status: [45][0-9]{2}" embrace_sdk.log; then
+          echo "⚠️  Failed uploads detected:"
+          grep -E "Upload operation complete.*Status: [45][0-9]{2}" embrace_sdk.log
+        else
+          echo "✅ No failed uploads"
+        fi
+        echo ""
+
+        # Check for network errors
+        echo "🔍 Checking for network errors..."
+        if grep -i "error.*network\|network.*error\|connection.*failed" embrace_sdk.log; then
+          echo "⚠️  Network errors detected:"
+          grep -i "error.*network\|network.*error\|connection.*failed" embrace_sdk.log | head -5
+        else
+          echo "✅ No network errors detected"
+        fi
+        echo ""
+
+        # Show upload URLs
+        echo "🔍 Upload endpoints used:"
+        grep -o "https://[^ ]*data.emb-api.com[^ ]*" embrace_sdk.log | sort -u || echo "  No URLs found"
+        echo ""
+
+        # Show full log for debugging (last 50 lines)
+        echo "═══════════════════════════════════════════════════════"
+        echo "📜 FULL SDK LOG (last 50 lines):"
+        echo "═══════════════════════════════════════════════════════"
+        tail -50 embrace_sdk.log
+        echo ""
+        echo "═══════════════════════════════════════════════════════"
 
     - name: Cleanup
       if: always()
