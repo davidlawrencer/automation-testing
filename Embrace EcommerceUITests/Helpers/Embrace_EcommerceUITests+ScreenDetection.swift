@@ -164,10 +164,7 @@ extension Embrace_EcommerceUITests {
         guestButton.tap()
         print("✅ Guest button tapped")
 
-        // Step 4: Wait for navigation
-        Thread.sleep(forTimeInterval: 3.0)
-
-        // Step 5: Verify navigation occurred
+        // Step 4: Verify navigation occurred
         let navigationOccurred = !authenticationView.exists ||
                                 app.otherElements.allElementsBoundByIndex.count > 1
         XCTAssertTrue(navigationOccurred,

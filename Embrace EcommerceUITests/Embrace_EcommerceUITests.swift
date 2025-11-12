@@ -24,9 +24,6 @@ final class Embrace_EcommerceUITests: XCTestCase {
             "RUN_SOURCE": "UITest" // Sends information about how session was run
         ]
         app.launch()
-
-        // Wait for Embrace SDK to fully initialize
-        Thread.sleep(forTimeInterval: 3.0)
     }
 
     override func tearDownWithError() throws {

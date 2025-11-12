@@ -108,16 +108,16 @@ struct Embrace_EcommerceApp: App {
     
     private func configureEmbrace() {
         do {
-            // Create basic Embrace configuration  
+            // Create basic Embrace configuration
             let options = Embrace.Options(
                 appId: SDKConfiguration.Embrace.appId,
                 logLevel: .info
             )
-            
+
             try Embrace
                 .setup(options: options)
                 .start()
-                
+
             print("✅ Embrace SDK initialized successfully")
             
             // Set initial session properties from configuration
