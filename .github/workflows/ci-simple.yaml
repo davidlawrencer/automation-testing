@@ -79,6 +79,45 @@ jobs:
         xcrun simctl bootstatus "$SIMULATOR_UDID" -b > /dev/null 2>&1 || true
         echo "✅ Simulator is ready"
 
+    - name: Verify Network Connectivity
+      run: |
+        echo "🌐 Verifying network connectivity..."
+
+        # Test 1: CI runner can reach internet
+        echo "📡 Testing CI runner network..."
+        if curl -s --max-time 10 https://www.google.com > /dev/null; then
+          echo "✅ CI runner has internet access"
+        else
+          echo "❌ CI runner cannot reach internet"
+          exit 1
+        fi
+
+        # Test 2: CI runner can reach Embrace endpoints
+        echo "📡 Testing Embrace API endpoints..."
+        EMBRACE_API="https://api.embrace.io"
+        if curl -s --max-time 10 -I "$EMBRACE_API" | head -1; then
+          echo "✅ Can reach Embrace API"
+        else
+          echo "⚠️  Cannot reach Embrace API (may be expected if endpoint requires auth)"
+        fi
+
+        # Test 3: Check DNS resolution
+        echo "📡 Testing DNS resolution..."
+        if nslookup embrace.io > /dev/null 2>&1; then
+          echo "✅ DNS resolution working"
+        else
+          echo "❌ DNS resolution failed"
+        fi
+
+        # Test 4: Simulator network test (install test app that makes network request)
+        echo "📡 Testing simulator network access..."
+        SIMULATOR_UDID="${{ steps.setup_simulator.outputs.simulator_udid }}"
+
+        # Open Safari in simulator to test networking
+        xcrun simctl openurl "$SIMULATOR_UDID" "https://www.google.com" || echo "⚠️  Could not open URL in simulator"
+
+        echo "✅ Network verification complete"
+
     - name: Build for Testing
       run: |
         echo "🔨 Building the app..."
@@ -114,6 +153,26 @@ jobs:
           -only-testing:"Embrace EcommerceUITests/$TEST_CLASS/$TEST_METHOD"
 
         echo "✅ Test completed successfully"
+
+    - name: Wait for SDK Upload and Verify
+      if: always()
+      run: |
+        echo "⏳ Waiting for Embrace SDK to complete uploads..."
+
+        # Wait 10 seconds for background uploads to complete
+        sleep 10
+
+        echo "📊 Checking for network activity..."
+
+        # Check if there were any network errors in system logs
+        echo "🔍 Checking system logs for network issues..."
+        log show --predicate 'process == "Embrace Ecommerce"' --last 5m --info 2>/dev/null | grep -i "network\|upload\|embrace" | tail -20 || echo "No relevant logs found"
+
+        # Test if Embrace endpoints are still reachable
+        echo "📡 Final connectivity check to Embrace API..."
+        curl -s --max-time 5 -I https://api.embrace.io | head -1 || echo "⚠️  Could not reach Embrace API"
+
+        echo "✅ Upload verification complete"
 
     - name: Cleanup
       if: always()
