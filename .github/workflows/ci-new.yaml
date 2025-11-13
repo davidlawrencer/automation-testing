@@ -465,4 +465,9 @@ jobs:
         killall Simulator 2>/dev/null || true
         xcrun simctl shutdown all 2>/dev/null || true
         echo "✅ All Simulator processes stopped"
+
+        # Clean up log files
+        echo "🧹 Cleaning up SDK log files..."
+        rm -f embrace_sdk.log 2>/dev/null || true
+
         echo "✅ Cleanup complete"

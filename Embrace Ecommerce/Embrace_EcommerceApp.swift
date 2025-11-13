@@ -113,8 +113,8 @@ struct Embrace_EcommerceApp: App {
             let options = Embrace.Options(
                 appId: SDKConfiguration.Embrace.appId,
                 platform: .default,
-                export: nil,
-                logLevel: .trace
+                logLevel: .trace,
+                export: nil
             )
 
             try Embrace

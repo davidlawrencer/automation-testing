@@ -228,6 +228,21 @@ jobs:
       if: always()
       run: |
         echo "🧹 Cleaning up..."
+
+        # Kill all simulator processes
+        echo "🧹 Stopping all Simulator processes..."
         killall Simulator 2>/dev/null || true
         xcrun simctl shutdown all 2>/dev/null || true
+
+        # Delete the simulator we created (if it still exists)
+        SIMULATOR_UDID="${{ steps.setup_simulator.outputs.simulator_udid }}"
+        if [[ -n "$SIMULATOR_UDID" ]]; then
+          echo "🧹 Deleting simulator $SIMULATOR_UDID..."
+          xcrun simctl delete "$SIMULATOR_UDID" 2>/dev/null || true
+        fi
+
+        # Clean up log files
+        echo "🧹 Cleaning up log files..."
+        rm -f embrace_sdk.log 2>/dev/null || true
+
         echo "✅ Cleanup complete"
