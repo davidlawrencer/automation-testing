@@ -58,10 +58,26 @@ final class Embrace_EcommerceUITests: XCTestCase {
         bringAppToForeground()
         print("✅ Final cycle complete")
 
-        // Terminate app to force final session end and upload
-        print("📤 Terminating app to force final session upload...")
+        // Terminate app to end session (session data saved locally)
+        print("📤 Terminating app to end session...")
         terminateApp()
-        print("✅ App terminated, session should be uploaded")
+        print("✅ App terminated, session data saved locally")
+
+        // CRITICAL: Relaunch app to trigger upload of previous session
+        // Embrace SDK uploads sessions on the NEXT app launch, not during termination
+        print("🚀 Relaunching app to trigger upload of previous session...")
+        app.launch()
+        print("✅ App relaunched, previous session should now be uploading")
+
+        // Wait for upload to complete
+        print("⏳ Waiting for session upload to complete...")
+        sleep(10)
+        print("✅ Upload wait complete")
+
+        // Terminate again to end the relaunch session
+        print("📤 Final app termination...")
+        app.terminate()
+        print("✅ Test complete")
     }
 
     @MainActor
