@@ -173,7 +173,7 @@ extension SDKCompatibilityTest {
                 "firebase_compatible": "true",
                 "mixpanel_compatible": "true",
                 "concurrent_operations": "supported",
-                "embrace_version": "6.13.0"
+                "embrace_version": "6.14.1"
             ]
         ))
         
