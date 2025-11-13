@@ -11,6 +11,8 @@ jobs:
   single-demo:
     runs-on: macos-latest
     timeout-minutes: 30
+    env:
+      IS_XCTEST: true
 
     steps:
     - name: Checkout code

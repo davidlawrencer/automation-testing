@@ -17,6 +17,8 @@ jobs:
   onboarding-demo:
     runs-on: macos-latest
     timeout-minutes: 119
+    env:
+      IS_XCTEST: true
 
     steps:
     - name: Checkout code
