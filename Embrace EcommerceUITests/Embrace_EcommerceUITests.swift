@@ -76,8 +76,8 @@ final class Embrace_EcommerceUITests: XCTestCase {
 
         // Wait for upload to complete
         print("⏳ Waiting for session upload to complete...")
-        logger.info("⏳ TEST_LIFECYCLE: Waiting 10s for upload to complete")
-        sleep(10)
+        logger.info("⏳ TEST_LIFECYCLE: Waiting 30s for upload to complete")
+        sleep(30)
         print("✅ Upload wait complete")
         logger.info("✅ TEST_LIFECYCLE: Wait complete - session should be uploaded by now")
 

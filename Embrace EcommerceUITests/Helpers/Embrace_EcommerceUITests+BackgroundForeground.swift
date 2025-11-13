@@ -25,8 +25,9 @@ extension Embrace_EcommerceUITests {
         XCUIDevice.shared.press(XCUIDevice.Button.home)
 
         // Wait for state transition and upload queue processing
-        // Embrace's tests use 1-2 seconds, using 3 for CI reliability
-        sleep(3)
+        // Testing hypothesis: SDK needs more time in background for uploads
+        // Increased from 3s to 15s to give SDK time to process and queue uploads
+        sleep(15)
 
         print("✅ App backgrounded, session upload triggered")
         logger.info("✅ TEST_LIFECYCLE: App backgrounded - SDK should have saved session state")
@@ -46,7 +47,8 @@ extension Embrace_EcommerceUITests {
                        "Embrace Ecommerce app should be in foreground")
 
         // Wait for state transition and upload queue processing
-        sleep(3)
+        // Increased from 3s to 15s to give SDK time to process uploads
+        sleep(15)
 
         print("✅ App foregrounded, background session upload triggered")
     }
@@ -61,7 +63,8 @@ extension Embrace_EcommerceUITests {
         app.terminate()
 
         // Wait for termination to complete and upload processing
-        sleep(5)
+        // Increased from 5s to 10s to give SDK more time to save session data
+        sleep(10)
 
         print("✅ App terminated, session should be uploaded")
         logger.info("✅ TEST_LIFECYCLE: App terminated - session data should be persisted to disk")
