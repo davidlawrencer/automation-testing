@@ -136,12 +136,17 @@ struct Embrace_EcommerceApp: App {
             }
             EmbraceService.shared.addSessionProperty(key: "third_party_sdks", value: "firebase,mixpanel,stripe,google_signin", permanent: true)
 
+            // Log environment for debugging CI vs local differences
+            logger.info("🔍 EMBRACE_INIT: Environment check - XCTestConfigurationFilePath exists: \(ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil)")
+            logger.info("🔍 EMBRACE_INIT: Environment check - IS_XCTEST: \(ProcessInfo.processInfo.environment["IS_XCTEST"] ?? "not set", privacy: .public)")
+
             // TODO: Break into own function
             var runSource = "Simulator"
             if let sessionRunSource = ProcessInfo.processInfo.environment["RUN_SOURCE"] {
                 runSource = sessionRunSource
             }
 
+            logger.info("🔍 EMBRACE_INIT: Session property - session_run_source: \(runSource, privacy: .public)")
             EmbraceService.shared.addSessionProperty(key: "session_run_source", value: runSource)
 
         } catch let error {

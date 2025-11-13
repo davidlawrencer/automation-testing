@@ -225,8 +225,15 @@ jobs:
         echo "🔍 Checking SDK initialization..."
         if grep -q "EMBRACE_INIT: SDK initialized successfully" embrace_sdk.log 2>/dev/null; then
           echo "✅ SDK initialized (found in OSLog)"
+          echo ""
           echo "App ID used:"
           grep "EMBRACE_INIT: Configuring SDK with App ID" embrace_sdk.log 2>/dev/null || echo "  App ID line not found"
+          echo ""
+          echo "Environment detection:"
+          grep "EMBRACE_INIT: Environment check" embrace_sdk.log 2>/dev/null || echo "  No environment check logs"
+          echo ""
+          echo "Session properties:"
+          grep "EMBRACE_INIT: Session property" embrace_sdk.log 2>/dev/null || echo "  No session property logs"
           echo ""
           echo "All SDK initialization messages:"
           grep "EMBRACE_INIT:" embrace_sdk.log 2>/dev/null || echo "  No EMBRACE_INIT messages"
@@ -238,6 +245,16 @@ jobs:
           echo ""
           echo "Checking if any EMBRACE_INIT messages appear in logs:"
           grep "EMBRACE_INIT" embrace_sdk.log 2>/dev/null | head -20 || echo "  No EMBRACE_INIT messages found in OSLog"
+        fi
+        echo ""
+
+        # Check for test lifecycle events
+        echo "🔍 Checking test lifecycle..."
+        if grep -q "TEST_LIFECYCLE:" embrace_sdk.log 2>/dev/null; then
+          echo "Test lifecycle events detected:"
+          grep "TEST_LIFECYCLE:" embrace_sdk.log 2>/dev/null | head -20
+        else
+          echo "⚠️  No test lifecycle events found"
         fi
         echo ""
 

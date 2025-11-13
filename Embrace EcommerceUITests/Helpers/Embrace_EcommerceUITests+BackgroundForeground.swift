@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import OSLog
 
 // MARK: - Background/Foreground Extension
 
@@ -14,7 +15,10 @@ extension Embrace_EcommerceUITests {
     /// Sends the app to background to trigger Embrace session uploads
     /// Uses XCUIDevice.shared.press(.home) which is Embrace's proven test method
     func sendAppToBackground() {
+        let logger = Logger(subsystem: "com.embrace.ecommerce.uitest", category: "lifecycle")
+
         print("📱 Pressing home button to background app...")
+        logger.info("🔄 TEST_LIFECYCLE: Backgrounding app - expecting SDK to transition session state")
 
         // Press home button - This is the method Embrace SDK uses in their own tests
         // See: EmbraceIOTestSessionSpanUITests.swift and EmbraceIOTestPostedPayloads.swift
@@ -25,6 +29,7 @@ extension Embrace_EcommerceUITests {
         sleep(3)
 
         print("✅ App backgrounded, session upload triggered")
+        logger.info("✅ TEST_LIFECYCLE: App backgrounded - SDK should have saved session state")
     }
 
     /// Brings the app to foreground to trigger Embrace session uploads for background session
@@ -48,7 +53,10 @@ extension Embrace_EcommerceUITests {
 
     /// Terminates the app to force session end and upload
     func terminateApp() {
+        let logger = Logger(subsystem: "com.embrace.ecommerce.uitest", category: "lifecycle")
+
         print("📱 Terminating app to force session end...")
+        logger.info("🔄 TEST_LIFECYCLE: Terminating app - SDK should end session and save locally")
 
         app.terminate()
 
@@ -56,5 +64,6 @@ extension Embrace_EcommerceUITests {
         sleep(5)
 
         print("✅ App terminated, session should be uploaded")
+        logger.info("✅ TEST_LIFECYCLE: App terminated - session data should be persisted to disk")
     }
 }

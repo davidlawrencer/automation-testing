@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import OSLog
 
 final class Embrace_EcommerceUITests: XCTestCase {
 
@@ -65,19 +66,27 @@ final class Embrace_EcommerceUITests: XCTestCase {
 
         // CRITICAL: Relaunch app to trigger upload of previous session
         // Embrace SDK uploads sessions on the NEXT app launch, not during termination
+        let logger = Logger(subsystem: "com.embrace.ecommerce.uitest", category: "lifecycle")
+
         print("🚀 Relaunching app to trigger upload of previous session...")
+        logger.info("🔄 TEST_LIFECYCLE: Relaunching app - SDK should detect previous session and upload it")
         app.launch()
         print("✅ App relaunched, previous session should now be uploading")
+        logger.info("✅ TEST_LIFECYCLE: App relaunched - upload should be in progress")
 
         // Wait for upload to complete
         print("⏳ Waiting for session upload to complete...")
+        logger.info("⏳ TEST_LIFECYCLE: Waiting 10s for upload to complete")
         sleep(10)
         print("✅ Upload wait complete")
+        logger.info("✅ TEST_LIFECYCLE: Wait complete - session should be uploaded by now")
 
         // Terminate again to end the relaunch session
         print("📤 Final app termination...")
+        logger.info("🔄 TEST_LIFECYCLE: Final termination")
         app.terminate()
         print("✅ Test complete")
+        logger.info("✅ TEST_LIFECYCLE: Test complete")
     }
 
     @MainActor
