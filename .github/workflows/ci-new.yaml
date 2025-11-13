@@ -1,5 +1,8 @@
 name: Onboarding - Generate Demo Sessions
 
+# Note: This CI action is optimized to pull as much app activity as possible out of a single action. 
+# It might not be optimized for your specific development use case.
+
 on:
   workflow_dispatch:
   # schedule:
