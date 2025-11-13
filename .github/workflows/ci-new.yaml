@@ -403,12 +403,21 @@ jobs:
         echo "📋 Total log lines captured: $(wc -l < embrace_sdk.log)"
         echo ""
 
-        # Check for SDK initialization
+        # Check for SDK initialization (look in both OSLog and xcodebuild stdout)
         echo "🔍 Checking SDK initialization..."
-        if grep -q "Embrace.*start" embrace_sdk.log; then
+        if grep -q "EMBRACE: SDK initialized successfully" embrace_sdk.log test_output_clone_*.log 2>/dev/null; then
           echo "✅ SDK initialized"
+          echo "App ID used:"
+          grep "EMBRACE: Configuring SDK with App ID" embrace_sdk.log test_output_clone_*.log 2>/dev/null || echo "  App ID line not found"
+          echo "SDK messages:"
+          grep "EMBRACE:" test_output_clone_*.log 2>/dev/null | head -10 || echo "  No EMBRACE messages in stdout"
         else
-          echo "⚠️  SDK initialization not detected"
+          echo "❌ SDK initialization not detected in logs"
+          echo "Checking for initialization errors:"
+          grep "CRITICAL ERROR starting Embrace" embrace_sdk.log test_output_clone_*.log 2>/dev/null || echo "  No initialization errors found"
+          echo ""
+          echo "Checking if EMBRACE messages appear anywhere in test output:"
+          grep "EMBRACE" test_output_clone_*.log 2>/dev/null | head -5 || echo "  No EMBRACE messages found in test output"
         fi
         echo ""
 
