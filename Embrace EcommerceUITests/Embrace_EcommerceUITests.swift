@@ -21,7 +21,7 @@ final class Embrace_EcommerceUITests: XCTestCase {
             "DISABLE_NETWORK_CALLS": "1", // NOT IN USE. Disable app network calls but allow Embrace SDK
             "USE_MOCK_DATA": "1", // NOT IN USE.
             "ALLOW_EMBRACE_NETWORK": "1", // NOT IN USE. Allow Embrace SDK network requests
-            "RUN_SOURCE": "UITest" // Sends information about how session was run
+            "RUN_SOURCE": "onboard_script" // Sends information about how session was run
         ]
         app.launch()
     }
@@ -57,6 +57,11 @@ final class Embrace_EcommerceUITests: XCTestCase {
         sendAppToBackground()
         bringAppToForeground()
         print("✅ Final cycle complete")
+
+        // Terminate app to force final session end and upload
+        print("📤 Terminating app to force final session upload...")
+        terminateApp()
+        print("✅ App terminated, session should be uploaded")
     }
 
     @MainActor

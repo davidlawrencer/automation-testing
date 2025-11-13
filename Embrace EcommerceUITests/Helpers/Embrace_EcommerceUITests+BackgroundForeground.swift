@@ -45,4 +45,16 @@ extension Embrace_EcommerceUITests {
 
         print("✅ App foregrounded, background session upload triggered")
     }
+
+    /// Terminates the app to force session end and upload
+    func terminateApp() {
+        print("📱 Terminating app to force session end...")
+
+        app.terminate()
+
+        // Wait for termination to complete and upload processing
+        sleep(5)
+
+        print("✅ App terminated, session should be uploaded")
+    }
 }

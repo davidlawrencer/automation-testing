@@ -316,9 +316,9 @@ jobs:
         fi
         echo "================================================"
 
-        # Wait for any remaining uploads
-        echo "⏳ Waiting 10 seconds for SDK uploads to complete..."
-        sleep 10
+        # Wait for any remaining uploads (increased to 20s to allow termination uploads)
+        echo "⏳ Waiting 20 seconds for SDK uploads to complete..."
+        sleep 20
 
         # Stop log capture
         echo "🛑 Stopping log capture..."
