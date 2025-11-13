@@ -240,10 +240,10 @@ jobs:
         echo "================================================"
         echo ""
 
-        # Start capturing Embrace SDK logs in background
+        # Start capturing Embrace SDK logs in background (app + test runner)
         echo "📋 Starting Embrace SDK log capture..."
         log stream \
-          --predicate 'subsystem == "com.embrace.logger"' \
+          --predicate 'processImagePath CONTAINS "Embrace" AND (process CONTAINS "Embrace Ecommerce" OR process CONTAINS "EcommerceUITests")' \
           --level debug \
           --style compact > embrace_sdk.log 2>&1 &
 
