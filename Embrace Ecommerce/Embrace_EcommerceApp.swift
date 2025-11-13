@@ -109,11 +109,10 @@ struct Embrace_EcommerceApp: App {
     private func configureEmbrace() {
         do {
             // Create basic Embrace configuration
-            // Use trace logging to capture all SDK activity including session lifecycle
+            // Using default log level (removing .trace to match working outdoors project)
             let options = Embrace.Options(
                 appId: SDKConfiguration.Embrace.appId,
                 platform: .default,
-                logLevel: .trace,
                 export: nil
             )
 
