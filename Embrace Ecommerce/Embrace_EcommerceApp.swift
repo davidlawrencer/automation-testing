@@ -112,6 +112,8 @@ struct Embrace_EcommerceApp: App {
             // Use trace logging to capture all SDK activity including session lifecycle
             let options = Embrace.Options(
                 appId: SDKConfiguration.Embrace.appId,
+                platform: .default,
+                export: nil,
                 logLevel: .trace
             )
 
@@ -136,7 +138,14 @@ struct Embrace_EcommerceApp: App {
             EmbraceService.shared.addSessionProperty(key: "session_run_source", value: runSource)
             
         } catch let error {
-            print("❌ Error starting Embrace: \(error.localizedDescription)")
+            print("❌ CRITICAL ERROR starting Embrace SDK:")
+            print("   Error: \(error)")
+            print("   Description: \(error.localizedDescription)")
+            if let nsError = error as NSError? {
+                print("   Domain: \(nsError.domain)")
+                print("   Code: \(nsError.code)")
+                print("   UserInfo: \(nsError.userInfo)")
+            }
             // Still continue app initialization even if Embrace fails
         }
     }
