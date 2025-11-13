@@ -109,10 +109,10 @@ struct Embrace_EcommerceApp: App {
     private func configureEmbrace() {
         do {
             // Create basic Embrace configuration
-            // Use debug logging to capture upload details in CI
+            // Use trace logging to capture all SDK activity including session lifecycle
             let options = Embrace.Options(
                 appId: SDKConfiguration.Embrace.appId,
-                logLevel: .debug
+                logLevel: .trace
             )
 
             try Embrace

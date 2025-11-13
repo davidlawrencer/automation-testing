@@ -51,6 +51,12 @@ final class Embrace_EcommerceUITests: XCTestCase {
         print("📤 Bringing app to foreground to trigger session upload...")
         bringAppToForeground()
         print("✅ Foreground trigger complete")
+
+        // Background/foreground one more time to ensure uploads complete
+        print("📤 Final background/foreground cycle to ensure all uploads...")
+        sendAppToBackground()
+        bringAppToForeground()
+        print("✅ Final cycle complete")
     }
 
     @MainActor
