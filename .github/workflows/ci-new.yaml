@@ -403,21 +403,23 @@ jobs:
         echo "📋 Total log lines captured: $(wc -l < embrace_sdk.log)"
         echo ""
 
-        # Check for SDK initialization (look in both OSLog and xcodebuild stdout)
+        # Check for SDK initialization (look in OSLog - using logger.info/error messages)
         echo "🔍 Checking SDK initialization..."
-        if grep -q "EMBRACE: SDK initialized successfully" embrace_sdk.log test_output_clone_*.log 2>/dev/null; then
-          echo "✅ SDK initialized"
+        if grep -q "EMBRACE_INIT: SDK initialized successfully" embrace_sdk.log 2>/dev/null; then
+          echo "✅ SDK initialized (found in OSLog)"
           echo "App ID used:"
-          grep "EMBRACE: Configuring SDK with App ID" embrace_sdk.log test_output_clone_*.log 2>/dev/null || echo "  App ID line not found"
-          echo "SDK messages:"
-          grep "EMBRACE:" test_output_clone_*.log 2>/dev/null | head -10 || echo "  No EMBRACE messages in stdout"
-        else
-          echo "❌ SDK initialization not detected in logs"
-          echo "Checking for initialization errors:"
-          grep "CRITICAL ERROR starting Embrace" embrace_sdk.log test_output_clone_*.log 2>/dev/null || echo "  No initialization errors found"
+          grep "EMBRACE_INIT: Configuring SDK with App ID" embrace_sdk.log 2>/dev/null || echo "  App ID line not found"
           echo ""
-          echo "Checking if EMBRACE messages appear anywhere in test output:"
-          grep "EMBRACE" test_output_clone_*.log 2>/dev/null | head -5 || echo "  No EMBRACE messages found in test output"
+          echo "All SDK initialization messages:"
+          grep "EMBRACE_INIT:" embrace_sdk.log 2>/dev/null || echo "  No EMBRACE_INIT messages"
+        else
+          echo "❌ SDK initialization not detected in OSLog"
+          echo ""
+          echo "Checking for initialization errors:"
+          grep "EMBRACE_INIT: CRITICAL ERROR" embrace_sdk.log 2>/dev/null || echo "  No initialization errors found"
+          echo ""
+          echo "Checking if any EMBRACE_INIT messages appear in logs:"
+          grep "EMBRACE_INIT" embrace_sdk.log 2>/dev/null | head -20 || echo "  No EMBRACE_INIT messages found in OSLog"
         fi
         echo ""
 

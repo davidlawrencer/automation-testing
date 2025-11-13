@@ -11,6 +11,7 @@ import GoogleSignIn
 import Stripe
 import Firebase
 import Mixpanel
+import OSLog
 
 @main
 struct Embrace_EcommerceApp: App {
@@ -107,10 +108,12 @@ struct Embrace_EcommerceApp: App {
     }
     
     private func configureEmbrace() {
+        let logger = Logger(subsystem: "com.embrace.ecommerce", category: "sdk-init")
+
         do {
-            // Explicitly log configuration for CI debugging
-            print("🔧 EMBRACE: Configuring SDK with App ID: \(SDKConfiguration.Embrace.appId)")
-            print("🔧 EMBRACE: Platform: iOS Simulator")
+            // Explicitly log configuration for CI debugging using OSLog (captured by log stream)
+            logger.info("🔧 EMBRACE_INIT: Configuring SDK with App ID: \(SDKConfiguration.Embrace.appId, privacy: .public)")
+            logger.info("🔧 EMBRACE_INIT: Platform: iOS Simulator")
 
             // Create basic Embrace configuration
             // Using default log level (removing .trace to match working outdoors project)
@@ -124,8 +127,8 @@ struct Embrace_EcommerceApp: App {
                 .setup(options: options)
                 .start()
 
-            print("✅ EMBRACE: SDK initialized successfully")
-            print("✅ EMBRACE: SDK started and ready to capture sessions")
+            logger.info("✅ EMBRACE_INIT: SDK initialized successfully")
+            logger.info("✅ EMBRACE_INIT: SDK started and ready to capture sessions")
             
             // Set initial session properties from configuration
             for (key, value) in SDKConfiguration.Embrace.sessionProperties {
@@ -140,15 +143,14 @@ struct Embrace_EcommerceApp: App {
             }
 
             EmbraceService.shared.addSessionProperty(key: "session_run_source", value: runSource)
-            
+
         } catch let error {
-            print("❌ CRITICAL ERROR starting Embrace SDK:")
-            print("   Error: \(error)")
-            print("   Description: \(error.localizedDescription)")
+            logger.error("❌ EMBRACE_INIT: CRITICAL ERROR starting Embrace SDK")
+            logger.error("❌ EMBRACE_INIT: Error: \(error.localizedDescription, privacy: .public)")
             if let nsError = error as NSError? {
-                print("   Domain: \(nsError.domain)")
-                print("   Code: \(nsError.code)")
-                print("   UserInfo: \(nsError.userInfo)")
+                logger.error("❌ EMBRACE_INIT: Domain: \(nsError.domain, privacy: .public)")
+                logger.error("❌ EMBRACE_INIT: Code: \(nsError.code)")
+                logger.error("❌ EMBRACE_INIT: UserInfo: \(String(describing: nsError.userInfo), privacy: .public)")
             }
             // Still continue app initialization even if Embrace fails
         }
