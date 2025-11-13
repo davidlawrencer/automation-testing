@@ -5,6 +5,7 @@ on:
 
 env:
   PROJECT_NAME: "Embrace Ecommerce"
+  XCODE_VERSION: "16.4"
 
 jobs:
   single-demo:
@@ -44,8 +45,9 @@ jobs:
 
     - name: Set up Xcode
       run: |
-        sudo xcode-select --print-path
-        echo "🛠️  Xcode Version: $(xcodebuild -version | head -1)"
+        echo "🔧 Setting Xcode version to ${{ env.XCODE_VERSION }}..."
+        sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
+        xcodebuild -version
 
     - name: Find and Boot Simulator
       id: setup_simulator
