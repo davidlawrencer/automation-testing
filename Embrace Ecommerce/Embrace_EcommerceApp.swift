@@ -108,6 +108,10 @@ struct Embrace_EcommerceApp: App {
     
     private func configureEmbrace() {
         do {
+            // Explicitly log configuration for CI debugging
+            print("🔧 EMBRACE: Configuring SDK with App ID: \(SDKConfiguration.Embrace.appId)")
+            print("🔧 EMBRACE: Platform: iOS Simulator")
+
             // Create basic Embrace configuration
             // Using default log level (removing .trace to match working outdoors project)
             let options = Embrace.Options(
@@ -120,7 +124,8 @@ struct Embrace_EcommerceApp: App {
                 .setup(options: options)
                 .start()
 
-            print("✅ Embrace SDK initialized successfully")
+            print("✅ EMBRACE: SDK initialized successfully")
+            print("✅ EMBRACE: SDK started and ready to capture sessions")
             
             // Set initial session properties from configuration
             for (key, value) in SDKConfiguration.Embrace.sessionProperties {

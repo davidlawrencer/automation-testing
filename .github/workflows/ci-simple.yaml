@@ -120,6 +120,8 @@ jobs:
         TEST_METHOD="testFlow"
 
         # Start capturing Embrace SDK logs in background (app + test runner)
+        # Note: This captures OSLog/unified logging, but NOT stdout print() statements
+        # stdout from xcodebuild test will be captured separately
         echo "📋 Starting Embrace SDK log capture..."
         log stream \
           --predicate 'processImagePath CONTAINS "Embrace" AND (process CONTAINS "Embrace Ecommerce" OR process CONTAINS "EcommerceUITests")' \
@@ -132,13 +134,13 @@ jobs:
         # Wait for log stream to initialize
         sleep 2
 
-        # Run the test
+        # Run the test (capture stdout to see print() statements)
         echo "▶️  Executing UI test..."
         xcodebuild test-without-building \
           -project "$PROJECT_NAME.xcodeproj" \
           -scheme "$SCHEME" \
           -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
-          -only-testing:"Embrace EcommerceUITests/$TEST_CLASS/$TEST_METHOD"
+          -only-testing:"Embrace EcommerceUITests/$TEST_CLASS/$TEST_METHOD" 2>&1 | tee xcodebuild_output.log
 
         echo "✅ Test completed successfully"
 
@@ -219,12 +221,21 @@ jobs:
         echo "📋 Total log lines captured: $(wc -l < embrace_sdk.log)"
         echo ""
 
-        # Check for SDK initialization
+        # Check for SDK initialization (look in both OSLog and xcodebuild stdout)
         echo "🔍 Checking SDK initialization..."
-        if grep -q "Embrace.*start" embrace_sdk.log; then
+        if grep -q "EMBRACE: SDK initialized successfully" embrace_sdk.log xcodebuild_output.log 2>/dev/null; then
           echo "✅ SDK initialized"
+          echo "App ID used:"
+          grep "EMBRACE: Configuring SDK with App ID" embrace_sdk.log xcodebuild_output.log 2>/dev/null || echo "  App ID line not found"
+          echo "SDK messages:"
+          grep "EMBRACE:" xcodebuild_output.log 2>/dev/null | head -10 || echo "  No EMBRACE messages in stdout"
         else
-          echo "⚠️  SDK initialization not detected"
+          echo "❌ SDK initialization not detected in logs"
+          echo "Checking for initialization errors:"
+          grep "CRITICAL ERROR starting Embrace" embrace_sdk.log xcodebuild_output.log 2>/dev/null || echo "  No initialization errors found"
+          echo ""
+          echo "Checking if EMBRACE messages appear anywhere in xcodebuild output:"
+          grep "EMBRACE" xcodebuild_output.log 2>/dev/null || echo "  No EMBRACE messages found in xcodebuild output"
         fi
         echo ""
 
