@@ -101,135 +101,36 @@ jobs:
     - name: Analyze Embrace SDK Logs
       if: always()
       run: |
-        echo "═══════════════════════════════════════════════════════"
-        echo "📊 EMBRACE SDK LOG ANALYSIS"
-        echo "═══════════════════════════════════════════════════════"
-        echo ""
-
         if [[ ! -f embrace_sdk.log ]]; then
           echo "❌ SDK log file not found!"
           exit 1
         fi
 
-        echo "📋 Total log lines captured: $(wc -l < embrace_sdk.log)"
-        echo ""
-
-        # Check for SDK initialization (look in OSLog - using logger.info/error messages)
-        echo "🔍 Checking SDK initialization..."
-        if grep -q "EMBRACE_INIT: SDK initialized successfully" embrace_sdk.log 2>/dev/null; then
-          echo "✅ SDK initialized (found in OSLog)"
-          echo ""
-          echo "App ID used:"
-          grep "EMBRACE_INIT: Configuring SDK with App ID" embrace_sdk.log 2>/dev/null || echo "  App ID line not found"
-          echo ""
-          echo "Environment detection:"
-          grep "EMBRACE_INIT: Environment check" embrace_sdk.log 2>/dev/null || echo "  No environment check logs"
-          echo ""
-          echo "Session properties:"
-          grep "EMBRACE_INIT: Session property" embrace_sdk.log 2>/dev/null || echo "  No session property logs"
-          echo ""
-          echo "All SDK initialization messages:"
-          grep "EMBRACE_INIT:" embrace_sdk.log 2>/dev/null || echo "  No EMBRACE_INIT messages"
-        else
-          echo "❌ SDK initialization not detected in OSLog"
-          echo ""
-          echo "Checking for initialization errors:"
-          grep "EMBRACE_INIT: CRITICAL ERROR" embrace_sdk.log 2>/dev/null || echo "  No initialization errors found"
-          echo ""
-          echo "Checking if any EMBRACE_INIT messages appear in logs:"
-          grep "EMBRACE_INIT" embrace_sdk.log 2>/dev/null | head -20 || echo "  No EMBRACE_INIT messages found in OSLog"
-        fi
-        echo ""
-
-        # Check for test lifecycle events
-        echo "🔍 Checking test lifecycle..."
-        if grep -q "TEST_LIFECYCLE:" embrace_sdk.log 2>/dev/null; then
-          echo "Test lifecycle events detected:"
-          grep "TEST_LIFECYCLE:" embrace_sdk.log 2>/dev/null | head -20
-        else
-          echo "⚠️  No test lifecycle events found"
-        fi
-        echo ""
-
-        # Check for session lifecycle
-        echo "🔍 Checking session lifecycle..."
-        echo "Session events:"
-        grep -i "session" embrace_sdk.log | head -10 || echo "  No session events found"
-        echo ""
-
-        # Check for upload attempts
-        echo "🔍 Checking upload operations..."
-        if grep -q "Upload operation" embrace_sdk.log; then
-          echo "✅ Upload operations detected:"
-          grep "Upload operation" embrace_sdk.log
-        else
-          echo "❌ No upload operations found in logs"
-        fi
-        echo ""
-
         # Check for successful uploads (HTTP 2xx status codes)
-        echo "🔍 Checking for successful uploads..."
         if grep -E "Upload operation complete.*Status: 2[0-9]{2}" embrace_sdk.log; then
-          echo "✅✅✅ SUCCESSFUL UPLOADS DETECTED! ✅✅✅"
+          echo "✅ SUCCESSFUL UPLOADS DETECTED"
           UPLOAD_COUNT=$(grep -cE "Upload operation complete.*Status: 2[0-9]{2}" embrace_sdk.log)
-          echo "📈 Number of successful uploads: $UPLOAD_COUNT"
+          echo "Number of successful uploads: $UPLOAD_COUNT"
         else
           echo "❌ No successful uploads (Status 2xx) found"
         fi
-        echo ""
 
         # Check for upload failures
-        echo "🔍 Checking for upload failures..."
         if grep -E "Upload operation complete.*Status: [45][0-9]{2}" embrace_sdk.log; then
-          echo "⚠️  Failed uploads detected:"
+          echo "⚠️ Failed uploads detected:"
           grep -E "Upload operation complete.*Status: [45][0-9]{2}" embrace_sdk.log
-        else
-          echo "✅ No failed uploads"
         fi
-        echo ""
 
         # Check for network errors
-        echo "🔍 Checking for network errors..."
         if grep -i "error.*network\|network.*error\|connection.*failed" embrace_sdk.log; then
-          echo "⚠️  Network errors detected:"
+          echo "⚠️ Network errors detected:"
           grep -i "error.*network\|network.*error\|connection.*failed" embrace_sdk.log | head -5
-        else
-          echo "✅ No network errors detected"
         fi
-        echo ""
-
-        # Show upload URLs
-        echo "🔍 Upload endpoints used:"
-        grep -o "https://[^ ]*data.emb-api.com[^ ]*" embrace_sdk.log | sort -u || echo "  No URLs found"
-        echo ""
-
-        # Show full log for debugging (last 50 lines)
-        echo "═══════════════════════════════════════════════════════"
-        echo "📜 FULL SDK LOG (last 50 lines):"
-        echo "═══════════════════════════════════════════════════════"
-        tail -50 embrace_sdk.log
-        echo ""
-        echo "═══════════════════════════════════════════════════════"
 
     - name: Cleanup
       if: always()
       run: |
-        echo "🧹 Cleaning up..."
-
-        # Kill all simulator processes
-        echo "🧹 Stopping all Simulator processes..."
         killall Simulator 2>/dev/null || true
         xcrun simctl shutdown all 2>/dev/null || true
-
-        # Delete the simulator we created (if it still exists)
-        SIMULATOR_UDID="${{ steps.setup_simulator.outputs.simulator_udid }}"
-        if [[ -n "$SIMULATOR_UDID" ]]; then
-          echo "🧹 Deleting simulator $SIMULATOR_UDID..."
-          xcrun simctl delete "$SIMULATOR_UDID" 2>/dev/null || true
-        fi
-
-        # Clean up log files
-        echo "🧹 Cleaning up log files..."
-        rm -f embrace_sdk.log 2>/dev/null || true
-
-        echo "✅ Cleanup complete"
+        xcrun simctl delete "${{ steps.setup_simulator.outputs.simulator_udid }}" 2>/dev/null || true
+        rm -f embrace_sdk.log xcodebuild_output.log 2>/dev/null || true
