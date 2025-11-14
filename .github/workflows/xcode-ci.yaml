@@ -8,7 +8,7 @@ env:
   XCODE_VERSION: "16.4"
 
 jobs:
-  single-demo:
+  xcode-ci:
     runs-on: macos-latest
     timeout-minutes: 50
 
@@ -80,98 +80,23 @@ jobs:
 
     - name: Run UI Test with SDK Logging
       run: |
-        echo "🧪 Running demo test with Embrace SDK logging..."
-        SIMULATOR_UDID="${{ steps.setup_simulator.outputs.simulator_udid }}"
-        PROJECT_NAME="${{ env.PROJECT_NAME }}"
-        SCHEME="${{ env.PROJECT_NAME }}"
-        TEST_CLASS="Embrace_EcommerceUITests"
-        TEST_METHOD="testFlow"
-
-        # Start capturing Embrace SDK logs in background (app + test runner)
-        # Note: This captures OSLog/unified logging, but NOT stdout print() statements
-        # stdout from xcodebuild test will be captured separately
-        echo "📋 Starting Embrace SDK log capture..."
+        # Start capturing Embrace SDK logs in background
         log stream \
           --predicate 'processImagePath CONTAINS "Embrace" AND (process CONTAINS "Embrace Ecommerce" OR process CONTAINS "EcommerceUITests")' \
           --level debug \
           --style compact > embrace_sdk.log 2>&1 &
 
         LOG_PID=$!
-        echo "Log capture PID: $LOG_PID"
 
-        # Wait for log stream to initialize
-        sleep 2
-
-        # Run the test (capture stdout to see print() statements)
-        echo "▶️  Executing UI test..."
+        # Run the test
         xcodebuild test-without-building \
-          -project "$PROJECT_NAME.xcodeproj" \
-          -scheme "$SCHEME" \
-          -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
-          -only-testing:"Embrace EcommerceUITests/$TEST_CLASS/$TEST_METHOD" 2>&1 | tee xcodebuild_output.log
-
-        echo "✅ Test completed successfully"
-
-        # Wait for any remaining uploads (increased to 20s to allow termination uploads)
-        echo "⏳ Waiting 20 seconds for SDK uploads to complete..."
-        sleep 20
-
-        # Inspect session data BEFORE stopping log capture and cleaning up
-        echo "═══════════════════════════════════════════════════════"
-        echo "🔍 EMBRACE SDK SESSION DATA INSPECTION"
-        echo "═══════════════════════════════════════════════════════"
-        echo ""
-
-        # Find the app's data container
-        APP_CONTAINER=$(xcrun simctl get_app_container "$SIMULATOR_UDID" "com.embrace.org.Embrace-Ecommerce" data 2>/dev/null || echo "")
-
-        if [[ -n "$APP_CONTAINER" ]]; then
-          echo "✅ Found app container: $APP_CONTAINER"
-          echo ""
-
-          # Look for Embrace SDK data directories
-          echo "📁 Checking Library directory..."
-          if [[ -d "$APP_CONTAINER/Library" ]]; then
-            echo "Library contents:"
-            ls -la "$APP_CONTAINER/Library" 2>/dev/null || echo "  Unable to list Library"
-            echo ""
-
-            # Check for Embrace-specific directories
-            echo "🔍 Looking for Embrace SDK data..."
-            find "$APP_CONTAINER/Library" -name "*mbrace*" -o -name "*otel*" -o -name "*.sqlite*" 2>/dev/null | while read -r file; do
-              echo "  Found: $file"
-              if [[ -f "$file" && "$file" == *.sqlite* ]]; then
-                echo "    Size: $(du -h "$file" | cut -f1)"
-              fi
-            done
-            echo ""
-
-            # Check Caches directory
-            if [[ -d "$APP_CONTAINER/Library/Caches" ]]; then
-              echo "📦 Caches directory contents:"
-              ls -la "$APP_CONTAINER/Library/Caches" 2>/dev/null || echo "  Unable to list Caches"
-              echo ""
-            fi
-
-            # Check Application Support directory
-            if [[ -d "$APP_CONTAINER/Library/Application Support" ]]; then
-              echo "📦 Application Support directory contents:"
-              ls -la "$APP_CONTAINER/Library/Application Support" 2>/dev/null || echo "  Unable to list Application Support"
-              echo ""
-            fi
-          else
-            echo "⚠️  Library directory not found"
-          fi
-        else
-          echo "❌ Could not find app container"
-        fi
-        echo "═══════════════════════════════════════════════════════"
-        echo ""
+          -project "${{ env.PROJECT_NAME }}.xcodeproj" \
+          -scheme "${{ env.PROJECT_NAME }}" \
+          -destination "platform=iOS Simulator,id=${{ steps.setup_simulator.outputs.simulator_udid }}" \
+          -only-testing:"Embrace EcommerceUITests/Embrace_EcommerceUITests/testFlow" 2>&1 | tee xcodebuild_output.log
 
         # Stop log capture
-        echo "🛑 Stopping log capture..."
         kill $LOG_PID 2>/dev/null || true
-        sleep 1
 
     - name: Analyze Embrace SDK Logs
       if: always()
