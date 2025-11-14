@@ -1,6 +1,6 @@
-name: Onboarding - Generate Demo Sessions
+name: Xcode - Integration Testing
 
-# Note: This CI action is optimized to pull as much app activity as possible out of a single action. 
+# Note: This CI action is optimized to pull as much app activity as possible out of a single action.
 # It might not be optimized for your specific development use case.
 
 on:

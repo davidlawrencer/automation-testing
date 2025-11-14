@@ -1,4 +1,4 @@
-name: Simple Demo - Single Session
+name: Xcode - CI
 
 on:
   workflow_dispatch:
@@ -11,8 +11,6 @@ jobs:
   single-demo:
     runs-on: macos-latest
     timeout-minutes: 50
-    env:
-      IS_XCTEST: true
 
     steps:
     - name: Checkout code
@@ -20,54 +18,32 @@ jobs:
 
     - name: Configure App with Repository Variables
       run: |
-        echo "🔧 Configuring app with repository variables..."
         # Check if APP_ID variable exists
         if [[ -n "${{ vars.APP_ID }}" ]]; then
-          echo "✅ APP_ID found in repository variables: ${{ vars.APP_ID }}"
-          # Update the SDK configuration file
-          echo "📝 Updating SDKConfiguration.swift..."
           sed -i '' 's/static let appId = "YOUR_EMBRACE_APP_ID"/static let appId = "${{ vars.APP_ID }}"/' "Embrace Ecommerce/Services/SDKConfiguration.swift"
-          echo "✅ Updated SDK configuration"
-          # Show the updated line for verification
-          echo "📋 Updated line:"
-          grep -n "static let appId" "Embrace Ecommerce/Services/SDKConfiguration.swift" || echo "⚠️ Could not find appId line"
+          echo "✅ APP_ID configured"
         else
           echo "❌ ERROR: APP_ID variable not found in repository variables"
-          echo "   Please add APP_ID as a repository variable before running this workflow."
-          echo "   Go to Settings → Secrets and variables → Actions → Variables tab"
           exit 1
         fi
-        echo ""
 
         # Set RUN_SOURCE to ci_action
-        echo "📝 Configuring UITest to use ci_action as RUN_SOURCE..."
-        sed -i '' 's/"RUN_SOURCE": "[^"]*"/"RUN_SOURCE": "ci_action"/' "Embrace EcommerceUITests/Embrace_EcommerceUITests.swift"
-        echo "✅ RUN_SOURCE set to ci_action"
-        echo ""
+        if sed -i '' 's/"RUN_SOURCE": "[^"]*"/"RUN_SOURCE": "ci_action"/' "Embrace EcommerceUITests/Embrace_EcommerceUITests.swift"; then
+          echo "✅ RUN_SOURCE set to ci_action"
+        else
+          echo "⚠️ WARNING: Failed to set RUN_SOURCE"
+        fi
 
     - name: Set up Xcode
       run: |
-        echo "🔧 Setting Xcode version to ${{ env.XCODE_VERSION }}..."
         sudo xcode-select -s /Applications/Xcode_${{ env.XCODE_VERSION }}.app
         xcodebuild -version
-
-    - name: Prepare Simulators
-      run: |
-        echo "🧹 Shutting down all simulators..."
-        xcrun simctl shutdown all
-        echo "🧹 Erasing all simulator data..."
-        xcrun simctl erase all
-        echo "✅ Simulators cleaned"
 
     - name: Find and Boot Simulator
       id: setup_simulator
       run: |
-        echo "🔍 Finding iPhone simulator..."
-        PROJECT_NAME="${{ env.PROJECT_NAME }}"
-        SCHEME="${{ env.PROJECT_NAME }}"
-
         # Get valid destination from xcodebuild
-        DESTINATION_LINE=$(xcodebuild -showdestinations -project "$PROJECT_NAME.xcodeproj" -scheme "$SCHEME" 2>&1 | grep "iPhone" | grep "platform:iOS Simulator" | head -1)
+        DESTINATION_LINE=$(xcodebuild -showdestinations -project "${{ env.PROJECT_NAME }}.xcodeproj" -scheme "${{ env.PROJECT_NAME }}" 2>&1 | grep "iPhone" | grep "platform:iOS Simulator" | head -1)
 
         if [[ -z "$DESTINATION_LINE" ]]; then
           echo "❌ No iPhone simulator found"
@@ -82,24 +58,18 @@ jobs:
           exit 1
         fi
 
-        echo "✅ Found simulator with ID: $SIMULATOR_UDID"
         echo "simulator_udid=$SIMULATOR_UDID" >> $GITHUB_OUTPUT
 
         # Boot the simulator
-        echo "⏳ Starting simulator..."
-        xcrun simctl boot "$SIMULATOR_UDID" 2>/dev/null || echo "Already booted"
-        xcrun simctl bootstatus "$SIMULATOR_UDID" -b > /dev/null 2>&1 || true
-        echo "✅ Simulator is ready"
+        xcrun simctl boot "$SIMULATOR_UDID" 2>/dev/null || true
+        xcrun simctl bootstatus "$SIMULATOR_UDID" -b
 
     - name: Build for Testing
       run: |
-        echo "🔨 Building the app..."
-        SIMULATOR_UDID="${{ steps.setup_simulator.outputs.simulator_udid }}"
-
         xcodebuild build-for-testing \
           -project "${{ env.PROJECT_NAME }}.xcodeproj" \
           -scheme "${{ env.PROJECT_NAME }}" \
-          -destination "platform=iOS Simulator,id=$SIMULATOR_UDID" \
+          -destination "platform=iOS Simulator,id=${{ steps.setup_simulator.outputs.simulator_udid }}" \
           -configuration Debug \
           -enableCodeCoverage NO \
           -allowProvisioningUpdates \
@@ -107,8 +77,6 @@ jobs:
           CODE_SIGNING_ALLOWED=NO \
           CODE_SIGN_IDENTITY="" \
           CODE_SIGNING_REQUIRED=NO
-
-        echo "✅ Build completed successfully"
 
     - name: Run UI Test with SDK Logging
       run: |
